@@ -135,9 +135,12 @@ class ChessBoard(object):
 	def _opponent_of(self, color):
 		return color * -1
 
-	def _is_opponents_peice_on_square(self, rank_index, file_index):
+	def _is_color_or_empty_square(self, rank_index, file_index, color=WHITE):
+		return self._is_color_peice_on_square(rank_index, file_index, color=color) or self._is_empty_square(rank_index, file_index)
+
+	def _is_color_peice_on_square(self, rank_index, file_index, color=WHITE):
 		return self._is_legal_square(rank_index, file_index) and \
-			self.get_peice_color_on_square(rank_index, file_index) == self._opponent_of(self.action)
+			self.get_peice_color_on_square(rank_index, file_index) == color
 
 	def _is_empty_square(self, rank_index, file_index):
 		return self._is_legal_square(rank_index, file_index) and \
@@ -173,6 +176,7 @@ class ChessBoard(object):
 	############################################################################
 
 	def _get_squares_threatened_by(self, rank_index, file_index):
+		peice = self.get_peice(rank_index, file_index)
 		return self._get_legal_moves_function_for_peice(peice)(rank_index, file_index)
 
 	def _get_king_postion_for_color(self, color=WHITE):
@@ -182,13 +186,13 @@ class ChessBoard(object):
 			return self.black_king_position
 
 	def _filter_moves_for_king_safety(self, start_position, moves):
+		peice = self.get_peice(*start_position)
 		peice_color = self.get_peice_color_on_square(*start_position)
 		king_position = self._get_king_postion_for_color(peice_color)
-		peice = self.get_peice(*start_position)
+		delta_board = DeltaChessBoard(self)
 
 		if peice.lower() != 'k':
 			# Do an initial check to see if we can avoid checking every move.
-			delta_board = DeltaChessBoard(self)
 			delta_board.set_peice(*start_position)
 			if not delta_board.is_square_threatened(
 				king_position,
@@ -218,6 +222,9 @@ class ChessBoard(object):
 		straight=False,
 		diagonal=False
 	):
+		opponent_color = self._opponent_of(
+			self.get_peice_color_on_square(rank_index, file_index)
+		)
 		directions = []
 		if diagonal:
 			directions.extend(self._diagonals)
@@ -232,9 +239,23 @@ class ChessBoard(object):
 				threatened_moves.append((current_rank, current_file))
 				current_rank += rank_direction
 				current_file += file_direction
-			if self._is_opponents_peice_on_square(current_rank, current_file):
+			if self._is_color_peice_on_square(current_rank, current_file, color=opponent_color):
 				threatened_moves.append((current_rank, current_file))
 
+		return threatened_moves
+
+	@ChessBoardLegalMoveFunctionRegistrar.register_for_peice('k')
+	def _threatened_moves_for_king(self, rank_index, file_index):
+		opponent_color = self._opponent_of(
+			self.get_peice_color_on_square(rank_index, file_index)
+		)
+
+		threatened_moves = []
+		for rank_direction, file_direction in self._diagonals + self._straights:
+			move_rank = rank_index + rank_direction
+			move_file = file_index + file_direction
+			if self._is_color_or_empty_square(move_rank, move_file, color=opponent_color):
+				threatened_moves.append((move_rank, move_file))
 		return threatened_moves
 
 	@ChessBoardLegalMoveFunctionRegistrar.register_for_peice('q')
@@ -249,8 +270,25 @@ class ChessBoard(object):
 	def _threatened_moves_for_bishop(self, *args):
 		return self._threatened_moves_for_sliding_peice(*args, diagonal=True)
 
+	knight_deltas = [(1, 2), (2, 1), (-1, 2), (-2, 1), (1, -2), (2, -1), (-1, -2), (-2, -1)]
+
+	@ChessBoardLegalMoveFunctionRegistrar.register_for_peice('n')
+	def _threatened_moves_for_knight(self, rank_index, file_index):
+		opponent_color = self._opponent_of(self.get_peice_color_on_square(rank_index, file_index))
+
+		threatened_moves = []
+		for rank_delta, file_delta in self.knight_deltas:
+			move_rank = rank_index + rank_delta
+			move_file = file_index + file_delta
+			if self._is_color_or_empty_square(move_rank, move_file, color=opponent_color):
+				threatened_moves.append((move_rank, move_file))
+		return threatened_moves
+
 	@ChessBoardLegalMoveFunctionRegistrar.register_for_peice('p')
 	def _threatened_moves_for_pawn(self, rank_index, file_index):
+		opponent_color = self._opponent_of(
+			self.get_peice_color_on_square(rank_index, file_index)
+		)
 		threatened_moves = []
 
 		moves_with_needed_opponent_check = [
@@ -259,9 +297,10 @@ class ChessBoard(object):
 			((rank_index + 1, file_index), False)
 		]
 		for move_tuple, needs_opponent_in_square in moves_with_needed_opponent_check:
-			if self._is_legal_square(*move_tuple) and \
-				self._is_opponents_peice_on_square(*move_tuple) == needs_opponent_in_square:
+			if self._is_color_or_empty_square(*move_tuple, color=opponent_color):
 				threatened_moves.append(move_tuple)
+
+		return threatened_moves
 
 	############################################################################
 	# Magic Methods
@@ -276,6 +315,8 @@ class ChessBoard(object):
 		def __getitem__(self, second_index):
 			return self.board.get_peice(self.first_index, second_index)
 
+		def __setitem__(self, second_index, value):
+			self.board.set_peice(self.first_index, second_index, peice=value)
 
 	class ChessBoardIterator(object):
 

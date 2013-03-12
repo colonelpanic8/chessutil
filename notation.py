@@ -5,37 +5,33 @@ class NotationProcessor(object):
 
 	def parse_algebraic_move(self, board, algebraic_move):
 		algebraic_move = algebraic_move.strip()
-		promotion = None
-		dest_x = 0
-		dest_y = 0
-		h_piece = "P"
-		h_rank = -1
-		h_file = -1
 
+		# Handle Castling
 		if algebraic_move == "O-O":
-			if self._turn == 0:
-				return (None,4,7,6,7,None)
-			if self._turn == 1:
-				return (None,4,0,6,0,None)
-			if algebraic_move == "O-O-O":
-				if self._turn == 0:
-					return (None,4,7,2,7,None)
-				if self._turn == 1:
-					return (None,4,0,2,0,None)
+			if self.action == self.WHITE:
+				return ((0, 4), (0, 6))
+			else:
+				return ((7, 4), (7, 6))
 
-		files = {"a":0,"b":1,"c":2,"d":3,"e":4,"f":5,"g":6,"h":7}
-		ranks = {"8":0,"7":1,"6":2,"5":3,"4":4,"3":5,"2":6,"1":7}
+		if algebraic_move == "O-O-O":
+			if self.action == self.WHITE:
+				return ((4, 0), (2, 0))
+			else:
+				return ((4, 7), (2, 7))
 
+	re.compile()
+
+	def parse_pawn_move(self, algebraic_move):
         # Clean up the textmove
 		"".join(algebraic_move.split("e.p."))
-		t = []
-		for ch in algebraic_move:
-			if ch not in "KQRNBabcdefgh12345678":
-				continue
-				t.append(ch)
+
+		move_characters = [
+			character for character in algebraic_move
+			if character in set("KQRNBabcdefgh12345678")
+		]
 
 		if len(t) < 2:
-			return None
+			raise
 
         # Get promotion if any
 		if t[-1] in ('Q','R','N','B'):

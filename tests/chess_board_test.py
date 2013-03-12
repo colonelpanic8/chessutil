@@ -15,7 +15,7 @@ class BaseChessBoardTestCase(T.TestCase):
 			'r'
 		)
 
-	def test_get_legal_moves_for_queen(self):
+	def test_get_legal_moves_with_queen_and_double_check(self):
 		self.chess_board._board[1][4] = 'q'
 		self.chess_board._board[2][5] = 'P'
 		self.chess_board._board[5][0] = 'b'
@@ -42,11 +42,16 @@ class BaseChessBoardTestCase(T.TestCase):
 
 		# The only available moves should be to stay on the current file
 		self.chess_board[4][4] = 'R'
-		T.assert_sets_equal(set(self.chess_board.get_legal_moves(1,4)), set([(4,4)]))
+		T.assert_sets_equal(
+			set(self.chess_board.get_legal_moves(1,4)),
+			set([(i,4) for i in range(2,5)])
+		)
 
 		# There should be no available moves because of the double check.
 		self.chess_board.set_peice(1, 5, 'B')
 		T.assert_sets_equal(set(self.chess_board.get_legal_moves(1,4)), set())
+
+		T.assert_sets_equal(set(self.chess_board.get_legal_moves(0,4)), set([(1,5)]))
 
 	def test_get_legal_moves_for_rook_with_capture(self):
 		self.chess_board._board[1][0] = None
