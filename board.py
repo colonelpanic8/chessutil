@@ -51,19 +51,12 @@ class ChessBoard(object):
 		None: NONE
 	}
 
-	def __init__(self):
-		self.reset_board()
-
 	############################################################################
 	# Public Methods
 	############################################################################
 
-	def reset_board(self):
-		self._board = self._new_board
-		self.action = self.WHITE
-
 	def get_peice(self, rank_index, file_index):
-		return self._board[rank_index][file_index]
+		raise NotImplemented()
 
 	def get_peice_color(self, peice):
 		return self._bool_or_none_to_color_map[self._is_peice_white(peice)]
@@ -84,12 +77,12 @@ class ChessBoard(object):
 		)
 
 	def make_move_with_tuples(self, source, dest):
-		self._board[s]
+		pass
 
 	def is_peice_on_square_white(self, rank_index, file_index):
 		if not self._is_legal_square(rank_index, file_index):
 			raise IllegalSquareError()
-		return self._is_peice_white(self._board[rank_index][file_index])
+		return self._is_peice_white(self.get_peice(rank_index, file_index))
 
 	def get_peice_color_on_square(self, rank_index, file_index):
 		return self._bool_or_none_to_color_map[
@@ -120,13 +113,8 @@ class ChessBoard(object):
 	def _is_legal_square(self, rank_index, file_index):
 		return 0 <= rank_index < 8 and 0 <= file_index < 8
 
-	def _set_peice(self, rank_index, file_index, peice=None):
-		self._board[rank_index][file_index] = peice
-
 	def _make_move(self, source, dest):
-		self._set_peice(*dest, peice=self.get_peice(*source))
-		self._set_peice(*source)
-		self.action *= -1
+		raise NotImplemented()
 
 	@property
 	def _new_board(self):
@@ -202,3 +190,36 @@ class ChessBoard(object):
 			if self._is_legal_square(*move_tuple) and \
 				self._is_opponents_peice_on_square(*move_tuple) == needs_opponent_in_square:
 				legal_moves.append(move_tuple)
+
+
+class BaseChessBoard(ChessBoard):
+
+	def __init__(self):
+		self.reset_board()
+
+	def reset_board(self):
+		self._board = self._new_board
+		self.action = self.WHITE
+
+	def get_peice(self, rank_index, file_index):
+		return self._board[rank_index][file_index]
+
+	def _set_peice(self, rank_index, file_index, peice=None):
+		self._board[rank_index][file_index] = peice
+
+	def _make_move(self, source, dest):
+		self._set_peice(*dest, peice=self.get_peice(*source))
+		self._set_peice(*source)
+		self.action *= -1
+
+
+class DeltaChessBoard(ChessBoard):
+
+	def __init__(self, parent):
+		self.parent = parent
+
+	def get_peice(self, rank_index, file_index):
+		return self._board[rank_index][file_index]
+
+	def _make_move(self, source, dest):
+		
