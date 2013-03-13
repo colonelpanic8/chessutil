@@ -55,6 +55,14 @@ class ChessBoard(object):
 		return self.is_legal_square(rank_index, file_index) and \
 			self.get_peice_color_on_square(rank_index, file_index) == common.NONE
 
+	def get_king_postion_for_color(self, color=None):
+		if color is None:
+			color = self.action
+		if color == common.WHITE:
+			return self.white_king_position
+		if color == common.BLACK:
+			return self.black_king_position
+
 	horizontal_table_border = "  +-----------------+"
 
 	def print_board(self):
@@ -69,12 +77,6 @@ class ChessBoard(object):
 			)
 		print self.horizontal_table_border
 		print "    A B C D E F G H"
-
-	def get_king_postion_for_color(self, color=common.WHITE):
-		if color == common.WHITE:
-			return self.white_king_position
-		if color == common.BLACK:
-			return self.black_king_position
 
 	############################################################################
 	# Private Methods

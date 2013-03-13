@@ -1,26 +1,22 @@
 import testify as T
 
-from chess_board import chess_board
-from chess_board import chess_rules
-
-print __name__
+from chess_board import board
+from chess_board import common
+from chess_board import rules
 
 
 class ChessRulesTestCase(T.TestCase):
 
 	@T.let
 	def chess_board(self):
-		return chess_board.BasicChessBoard()
+		return board.BasicChessBoard()
 
 	@T.let
 	def chess_rules(self):
-		return chess_rules.ChessRules(self.chess_board)
+		return rules.ChessRules(self.chess_board)
 
 	def test_get_item_of_chess_board(self):
-		T.assert_equal(
-			self.chess_board[0][0],
-			'r'
-		)
+		T.assert_equal(self.chess_board[0][0], 'r')
 
 	def test_get_legal_moves_with_queen_and_double_check(self):
 		self.chess_board._board[1][4] = 'q'
@@ -78,7 +74,7 @@ class ChessRulesTestCase(T.TestCase):
 
 	def test_active_color_error(self):
 		T.assert_raises(
-			chess_rules.ActiveColorError,
+			common.ActiveColorError,
 			self.chess_rules.get_legal_moves,
 			7, 0
 		)
@@ -86,10 +82,11 @@ class ChessRulesTestCase(T.TestCase):
 		self.chess_board.make_move((1, 0), (3, 0))
 
 		T.assert_raises(
-			chess_rules.ActiveColorError,
+			common.ActiveColorError,
 			self.chess_rules.get_legal_moves,
 			0, 0
 		)
+
 
 if __name__ == '__main__':
 	T.run()

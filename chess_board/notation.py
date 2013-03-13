@@ -1,88 +1,102 @@
 from . import common
+from . import rules
+from .board import BasicChessBoard
 
 
-def file_to_index(file_char):
-	return ord(file_char) - 97
+class ChessNotationProcessor(object):
 
+	@classmethod
+	def file_to_index(cls, file_char):
+		return ord(file_char) - 97
 
-def rank_to_index(rank):
-	return rank - 1
+	@classmethod
+	def rank_to_index(cls, rank):
+		return rank - 1
 
+	@classmethod
+	def square_name_to_indices(cls, square_name):
+		file_char, rank_char = square_name
+		return cls.rank_to_index(int(rank_char)), cls.file_to_index(file_char)
 
-def square_name_to_indices(square_name):
-	file_char, rank_char = square_name
-	return rank_to_index(int(rank_char)), file_to_index(file_char)
-
-
-
-class NotationProcessor(object):
+	def __init__(self, board=None):
+		if board == None:
+			board = BasicChessBoard()
+		self._board = board
+		self._rules = rules.ChessRules(self._board)
+		self._peice_char_to_function_map = {
+			'K': self._parse_king_move,
+			'Q': self._parse_queen_move,
+			'R': self._parse_rook_move,
+			'B': self._parse_bishop_move,
+			'N': self._parse_knight_move,
+		}
 
 	def make_move_with_uci_notation(self, move):
 		return self.make_move_with_square_names(move[:2], move[2:])
 
 	def make_move_with_square_names(self, source, dest):
 		return self.make_move(
-			common.square_name_to_indices(source),
-			common.square_name_to_indices(dest)
+			self.square_name_to_indices(source),
+			self.square_name_to_indices(dest)
 		)
 
-	def parse_algebraic_move(self, board, algebraic_move):
+	def parse_algebraic_move(self, algebraic_move):
 		algebraic_move = algebraic_move.strip()
 
 		# Handle Castling
 		if algebraic_move == "O-O":
-			if self.action == self.WHITE:
+			if self._board.action == common.WHITE:
 				return ((0, 4), (0, 6))
 			else:
 				return ((7, 4), (7, 6))
 
 		if algebraic_move == "O-O-O":
-			if self.action == self.WHITE:
+			if self._board.action == common.WHITE:
 				return ((4, 0), (2, 0))
 			else:
 				return ((4, 7), (2, 7))
 
-	re.compile()
+		if algebraic_move.islower():
+			return self._parse_pawn_move(algebraic_move)
+		else:
+			peice_type = algebraic_move[0]
+			disambiguation = algebraic_move[1:-2]
+			disambiguation.strip('x')
+			destination = self.square_name_to_indices(algebraic_move[-2:])
+			if disambiguation:
+				pass
+			else:
+				return self._peice_char_to_function_map[peice_type](destination)
 
-	def parse_pawn_move(self, algebraic_move):
+	def _parse_king_move(self, destination):
+		return (self.get_king_postion_for_color(), destination)
+
+	def _parse_queen_move(self, destination):
+		pass
+
+	def _parse_rook_move(self, destination):
+		pass
+
+	def _parse_bishop_move(self, destination):
+		pass
+
+	def _parse_knight_move(self, destination):
+		pass
+
+	def _parse_pawn_move(self, algebraic_move):
         # Clean up the textmove
 		"".join(algebraic_move.split("e.p."))
 
-		move_characters = [
-			character for character in algebraic_move
-			if character in set("KQRNBabcdefgh12345678")
-		]
-
-		if len(t) < 2:
-			raise
-
-        # Get promotion if any
-		if t[-1] in ('Q','R','N','B'):
-			promotion = {'Q':1,'R':2,'N':3,'B':4}[t.pop()]
-
-		if len(t) < 2:
+		if '=' in algebraic_move:
 			return None
 
-        # Get the destination
-		if not files.has_key(t[-2]) or not ranks.has_key(t[-1]):
-			return None
+		destination = self.square_name_to_indices(algebraic_move[-2:])
+		disambiguation = algebraic_move[:-2]
+		if disambiguation:
+			source = (destination[0] - 1, self.file_to_index(disambiguation[0]))
+		elif destination[0] == 3 and not self._board.get_peice(2, destination[1]):
+			source = (1, destination[1])
+		else:
+			source = (destination[0] - 1, destination[1])
 
-        dest_x = files[t[-2]]
-		dest_y = ranks[t[-1]]
-
-        # Pick out the hints
-		t = t[:-2]
-		for h in t:
-			if h in ('K','Q','R','N','B','P'):
-				h_piece = h
-			elif h in ('a','b','c','d','e','f','g','h'):
-				h_file = files[h]
-			elif h in ('1','2','3','4','5','6','7','8'):
-				h_rank = ranks[h]
-
-        # If we have both a source and destination we don't need the piece hint.
-		# This will make us make the move directly.
-		if h_rank > -1 and h_file > -1:
-			h_piece = None
-
-		return (h_piece,h_file,h_rank,dest_x,dest_y,promotion)
+		return (source, destination)

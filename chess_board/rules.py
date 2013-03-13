@@ -1,12 +1,8 @@
 from __future__ import absolute_import
 import functools
 
-from . import chess_board
+from . import board
 from . import common
-
-
-class ActiveColorError(Exception):
-	pass
 
 
 class ChessRulesLegalMoveFunctionRegistrar(type):
@@ -35,7 +31,7 @@ class ChessRules(object):
 
 	def __init__(self, board=None):
 		if board == None:
-			board = chess_board.BasicChessBoard()
+			board = board.BasicChessBoard()
 		self._board = board
 
 	def get_legal_moves(self, rank_index, file_index):
