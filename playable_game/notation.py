@@ -5,19 +5,6 @@ from .board import BasicChessBoard
 
 class ChessNotationProcessor(object):
 
-	@classmethod
-	def file_to_index(cls, file_char):
-		return ord(file_char) - 97
-
-	@classmethod
-	def rank_to_index(cls, rank):
-		return rank - 1
-
-	@classmethod
-	def square_name_to_indices(cls, square_name):
-		file_char, rank_char = square_name
-		return cls.rank_to_index(int(rank_char)), cls.file_to_index(file_char)
-
 	def __init__(self, board=None):
 		if board == None:
 			board = BasicChessBoard()
@@ -31,30 +18,20 @@ class ChessNotationProcessor(object):
 			'N': self._parse_knight_move,
 		}
 
-	def make_move_with_uci_notation(self, move):
-		return self.make_move_with_square_names(move[:2], move[2:])
-
-	def make_move_with_square_names(self, source, dest):
-		return self.make_move(
-			self.square_name_to_indices(source),
-			self.square_name_to_indices(dest)
-		)
-
 	def parse_algebraic_move(self, algebraic_move):
-		algebraic_move = algebraic_move.strip(' \n+#')
-
+		algebraic_move = algebraic_move.strip(' \n+#!?')
 		# Handle Castling
 		if algebraic_move == "O-O":
-			if self._board.action == common.WHITE:
-				return ((0, 4), (0, 6))
+			if self._rules.action == common.WHITE:
+				return common.MoveInfo((0, 4), (0, 6))
 			else:
-				return ((7, 4), (7, 6))
+				return common.MoveInfo((7, 4), (7, 6))
 
 		if algebraic_move == "O-O-O":
-			if self._board.action == common.WHITE:
-				return ((4, 0), (2, 0))
+			if self._rules.action == common.WHITE:
+				return common.MoveInfo((0, 4), (0, 2))
 			else:
-				return ((4, 7), (2, 7))
+				return common.MoveInfo((7, 4), (7, 2))
 
 		if algebraic_move[0].islower():
 			return self._parse_pawn_move(algebraic_move)
@@ -69,7 +46,7 @@ class ChessNotationProcessor(object):
 				return common.MoveInfo(*self._piece_char_to_function_map[piece_type](destination))
 
 	def _parse_king_move(self, destination):
-		return (self._board.get_king_postion_for_color(), destination)
+		return (self._board.get_king_postion_for_color(self._rules.action), destination)
 
 	def _parse_queen_move(self, destination, disambiguation=None):
 		pass
@@ -104,3 +81,16 @@ class ChessNotationProcessor(object):
 			source = (destination[0] - 1, destination[1])
 
 		return common.PromotionMoveInfo(source, destination, promotion)
+
+	@classmethod
+	def file_to_index(cls, file_char):
+		return ord(file_char) - 97
+
+	@classmethod
+	def rank_to_index(cls, rank):
+		return rank - 1
+
+	@classmethod
+	def square_name_to_indices(cls, square_name):
+		file_char, rank_char = square_name
+		return cls.rank_to_index(int(rank_char)), cls.file_to_index(file_char)

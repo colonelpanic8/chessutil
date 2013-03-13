@@ -38,8 +38,8 @@ class ChessRules(object):
 		self.moves = []
 
 	def get_legal_moves(self, rank_index, file_index):
-		if self._board.get_piece_color_on_square(rank_index, file_index) != self._board.action:
-			raise ActiveColorError()
+		if self._board.get_piece_color_on_square(rank_index, file_index) != self.action:
+			raise common.ActiveColorError()
 		return self._filter_moves_for_king_safety(
 			(rank_index, file_index),
 			self._get_squares_threatened_by(rank_index, file_index)
@@ -59,20 +59,22 @@ class ChessRules(object):
 	def make_legal_move(self, move_info):
 		if not self.is_legal_move(move_info.source, move_info.destination):
 			raise common.IllegalMoveError()
-		peice = self._board.get_piece(*source)
+
+		piece = self._board.get_piece(*move_info.source)
 
 		# Make sure that we got promotion info if we need it, and that we didn't
 		# get it if we don't.
 		if peice.lower() == 'p' and move_info.destination[0] in (0, 7):
 			if move_info.promotion not in ('Q', 'R', 'B', 'N'):
 				raise common.IllegalMoveError()
-		else:
-			if move_info.promotion is not None:
-				raise common.IllegalMoveError()
+			else:
+				piece = move_info.promotion
+				if self.action = common.WHITE:
+					piece = piece.lower()
+		elif move_info.promotion is not None:
+			raise common.IllegalMoveError()
 
-		self._board.make_move(move_info.source, move_info.destination)
-		if move_info.promotion is not None:
-			self._board.set_piece(*destination, peice=move_info.promotion)
+		self._board.make_move(move_info.source, move_info.destination, peice)
 		self.action = common.opponent_of(self.action)
 		self.moves.append(move_info)
 
@@ -91,7 +93,7 @@ class ChessRules(object):
 		piece = self._board.get_piece(*start_position)
 		piece_color = self._board.get_piece_color_on_square(*start_position)
 		king_position = self._board.get_king_postion_for_color(piece_color)
-		delta_board = chess_board.DeltaChessBoard(self._board)
+		delta_board = board.DeltaChessBoard(self._board)
 		delta_rules = ChessRules(delta_board)
 
 		if piece.lower() != 'k':
@@ -142,7 +144,11 @@ class ChessRules(object):
 				threatened_moves.append((current_rank, current_file))
 				current_rank += rank_direction
 				current_file += file_direction
-			if self._board.is_color_piece_on_square(current_rank, current_file, color=opponent_color):
+			if self._board.is_color_piece_on_square(
+				current_rank,
+				current_file,
+				color=opponent_color
+			):
 				threatened_moves.append((current_rank, current_file))
 
 		return threatened_moves
@@ -189,25 +195,33 @@ class ChessRules(object):
 				threatened_moves.append((move_rank, move_file))
 		return threatened_moves
 
-	def _check_pawn_capture_move(self, rank_index, file_index, opponent_color=common.WHITE):
-		return self._board.is_color_piece_on_square(rank_index, file_index, color=opponent_color)
+	def _check_pawn_capture_move(self, rank_index, file_index, color=common.WHITE):
+		return self._board.is_color_piece_on_square(
+			rank_index,
+			file_index,
+			color=common.opponent_of(color)
+		)
 
 	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('p')
 	def _threatened_moves_for_pawn(self, rank_index, file_index):
-		opponent_color = common.opponent_of(
-			self._board.get_piece_color_on_square(rank_index, file_index)
-		)
+		peice_color = self._board.get_piece_color_on_square(rank_index, file_index)
 		threatened_moves = []
 
 		check_capture_move = functools.partial(
 			self._check_pawn_capture_move,
-			opponent_color=opponent_color
+			color=peice_color
 		)
+		rank_direction = -1 if peice_color is common.BLACK else 1
+		new_rank = rank_index + rank_direction
+		double_move_rank = 3 if peice_color is common.WHITE else 4
 		moves_with_predicates = [
-			((rank_index + 1, file_index + 1), check_capture_move),
-			((rank_index + 1, file_index - 1), check_capture_move),
-			((rank_index + 1, file_index), self._board.is_empty_square),
-			((rank_index + 2, file_index), lambda r, f: r == 3 and self._board.is_empty_square(r, f))
+			((new_rank, file_index + 1), check_capture_move),
+			((new_rank, file_index - 1), check_capture_move),
+			((new_rank, file_index), self._board.is_empty_square),
+			(
+				(rank_index + 2*rank_direction, file_index),
+				lambda r, f: r == double_move_rank and self._board.is_empty_square(r, f)
+			)
 		]
 		for move_tuple, predicate in moves_with_predicates:
 			if predicate(*move_tuple):

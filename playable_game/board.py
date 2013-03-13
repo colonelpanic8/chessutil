@@ -25,8 +25,8 @@ class ChessBoard(object):
 	def get_piece_color(self, piece):
 		return common._bool_or_none_to_color_map[self._is_piece_white(piece)]
 
-	def make_move(self, source, dest):
-		self.set_piece(*dest, piece=self.get_piece(*source))
+	def make_move(self, source, dest, piece):
+		self.set_piece(*dest, piece=piece)
 		self.set_piece(*source)
 
 	def get_piece_color_on_square(self, rank_index, file_index):
@@ -49,8 +49,6 @@ class ChessBoard(object):
 			self.get_piece_color_on_square(rank_index, file_index) == common.NONE
 
 	def get_king_postion_for_color(self, color=None):
-		if color is None:
-			color = self.action
 		if color == common.WHITE:
 			return self.white_king_position
 		if color == common.BLACK:
@@ -65,7 +63,7 @@ class ChessBoard(object):
 				self.get_piece(rank_index, file_index) for file_index in range(8)
 			]
 			print "{0} | {1} {2} {3} {4} {5} {6} {7} {8} |".format(
-				rank_index,
+				rank_index + 1,
 				*map(lambda x: "." if x is None else x, row)
 			)
 		print self.horizontal_table_border
@@ -150,7 +148,6 @@ class BasicChessBoard(ChessBoard):
 
 	def reset_board(self):
 		self._board = self._new_board
-		self.action = common.WHITE
 		self.white_king_position = (0, 4)
 		self.black_king_position = (7, 4)
 
@@ -171,7 +168,6 @@ class DeltaChessBoard(ChessBoard):
 		self.reset_to_parent()
 
 	def reset_to_parent(self):
-		self.action = self.parent.action
 		self.white_king_position = self.parent.white_king_position
 		self.black_king_position = self.parent.black_king_position
 		self.delta_dictionary = {}
@@ -184,14 +180,4 @@ class DeltaChessBoard(ChessBoard):
 
 	def set_piece(self, rank_index, file_index, piece=None):
 		self.delta_dictionary[(rank_index, file_index)] = piece
-
-	def make_new_with_move(self, source, dest):
-		new_board = type(self)(self)
-		new_board.make_move(source, dest)
-		return new_board
-
-
-class RecursiveDeltaChessBoard(DeltaChessBoard):
-
-	def make_move(self, *args, **kwargs):
-		return self.make_new_with_move(*args, **kwargs)
+		super(DeltaChessBoard, self).set_piece(rank_index, file_index, piece=piece)
