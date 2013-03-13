@@ -24,42 +24,42 @@ class ChessNotationProcessorTest(T.TestCase):
 	def clear_board(self):
 		clear_everything_but_kings_from_board(self.chess_board)
 
-	def check_move_info(algebraic_move, *args):
+	def check_move_info(self, algebraic_move, *args):
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move(algebraic_move),
 			common.MoveInfo(*args)
 		)
 
-	def set_peice(algebraic_name, peice):
+	def set_piece(self, algebraic_move, piece):
 		self.chess_board.set_piece(
 			*notation.ChessNotationProcessor.square_name_to_indices(algebraic_move),
-			piece=peice
+			piece=piece
 		)
 
 	def test_pawn_move_parsing(self):
 		self.chess_rules.action = common.WHITE
-		self.set_peice('f7', 'P')
-		self.set_peice('e6', 'p')
+		self.set_piece('f7', 'P')
+		self.set_piece('e6', 'p')
 		self.check_move_info('exf7+', (5, 4), (6, 5))
 		self.check_move_info('exf7#', (5, 4), (6, 5))
 
 		# Check double pawn move.
-		self.set_peice('e2', 'p')
+		self.set_piece('e2', 'p')
 		self.check_move_info('e4', (1, 4), (3, 4))
 
 		# Check that the right pawn is selected when there are two in a file.
-		self.set_peice('e3', 'p')
+		self.set_piece('e3', 'p')
 		self.check_move_info('e4', (2, 4), (3, 4))
 		self.check_move_info('exd4', (2, 4), (3, 3))
 
 		# Check that the selected pawn is affected by the current action.
 		self.chess_rules.action = common.BLACK
-		self.set_peice('e5', 'P')
+		self.set_piece('e5', 'P')
 		self.check_move_info('e4', (4, 4), (3, 4))
 		self.check_move_info('exd4', (4, 4) (3, 3))
 
 	def test_promotion(self):
-		self.set_peice('a7', 'P')
+		self.set_piece('a7', 'P')
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('a8=Q+'),
 			common.PromotionMoveInfo((6, 0), (7, 0), 'Q')
@@ -70,9 +70,15 @@ class ChessNotationProcessorTest(T.TestCase):
 		)
 
 		self.chess_rules.action = common.BLACK
-		T.assert_raises(
-			self.notation_processor.parse_algebraic_move,
-			'a8=R'
+		T.assert_equal(
+			self.notation_processor.parse_algebraic_move('a1=R'),
+			common.PromotionMoveInfo((1, 0), (0, 0), 'R')
+		)
+
+		T.assert_equal(
+			self.notation_processor.parse_algebraic_move('bxa1=R'),
+			common.PromotionMoveInfo((1, 1), (0, 0), 'R')
+		)
 
 	def test_castling(self):
 		self.chess_rules.action = common.WHITE
@@ -96,10 +102,7 @@ class ChessNotationProcessorTest(T.TestCase):
 		)
 
 	def test_rank_and_file_disambiguation(self):
-		T.assert_equal(
-			self.notation_processor.parse_algebraic_move('Qa4xa5')
-		)
-		
+		self.check_move_info('Qa4xa5', (3, 0), (4, 0))
 
 	def test_bishop_move_no_disambiguation(self):
 		pass

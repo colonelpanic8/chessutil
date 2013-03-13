@@ -64,17 +64,17 @@ class ChessRules(object):
 
 		# Make sure that we got promotion info if we need it, and that we didn't
 		# get it if we don't.
-		if peice.lower() == 'p' and move_info.destination[0] in (0, 7):
+		if piece.lower() == 'p' and move_info.destination[0] in (0, 7):
 			if move_info.promotion not in ('Q', 'R', 'B', 'N'):
-				raise common.IllegalMoveError()
+				raise common.IllegalMoveError("You must specify a promotion.")
 			else:
 				piece = move_info.promotion
-				if self.action = common.WHITE:
+				if self.action == common.WHITE:
 					piece = piece.lower()
 		elif move_info.promotion is not None:
-			raise common.IllegalMoveError()
+			raise common.IllegalMoveError("Promotion not allowed for this move.")
 
-		self._board.make_move(move_info.source, move_info.destination, peice)
+		self._board.make_move(move_info.source, move_info.destination, piece)
 		self.action = common.opponent_of(self.action)
 		self.moves.append(move_info)
 
@@ -204,16 +204,16 @@ class ChessRules(object):
 
 	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('p')
 	def _threatened_moves_for_pawn(self, rank_index, file_index):
-		peice_color = self._board.get_piece_color_on_square(rank_index, file_index)
+		piece_color = self._board.get_piece_color_on_square(rank_index, file_index)
 		threatened_moves = []
 
 		check_capture_move = functools.partial(
 			self._check_pawn_capture_move,
-			color=peice_color
+			color=piece_color
 		)
-		rank_direction = -1 if peice_color is common.BLACK else 1
+		rank_direction = -1 if piece_color is common.BLACK else 1
 		new_rank = rank_index + rank_direction
-		double_move_rank = 3 if peice_color is common.WHITE else 4
+		double_move_rank = 3 if piece_color is common.WHITE else 4
 		moves_with_predicates = [
 			((new_rank, file_index + 1), check_capture_move),
 			((new_rank, file_index - 1), check_capture_move),

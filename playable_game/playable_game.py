@@ -1,3 +1,7 @@
+from . import common
+from . import rules
+from . import notation
+from .board import BasicChessBoard
 
 
 class PlayableChessGame(object):

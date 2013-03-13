@@ -20,7 +20,7 @@ class BaseChessRulesTestCase(T.TestCase):
 		return rules.ChessRules(self.chess_board)
 
 	def make_legal_move(self, *args):
-		self.chess_rules.make_legal_move(common.MoveInfo(*args))
+		return self.chess_rules.make_legal_move(common.MoveInfo(*args))
 
 	def make_legal_moves(self, moves):
 		for move in moves:
@@ -28,6 +28,9 @@ class BaseChessRulesTestCase(T.TestCase):
 
 
 class ClearBoardChessRulesTestCase(BaseChessRulesTestCase):
+
+	def make_legal_promotion(self, *args, **kwargs):
+		return self.chess_rules.make_legal_move(common.PromotionMoveInfo(*args), **kwargs)
 
 	@T.setup
 	def clear_board(self):
@@ -37,24 +40,38 @@ class ClearBoardChessRulesTestCase(BaseChessRulesTestCase):
 		self.chess_board[6][0] = 'P'
 		self.chess_board[4][1] = 'p'
 		self.chess_rules.action = common.BLACK
-		self.make_legal_moves(
-			[
-				((6, 0), (4, 0)),
-				((4, 1), (5, 0))
-			]
-		)
-		T.assert_equal(
-			
-		)
+		self.make_legal_moves([((6, 0), (4, 0)), ((4, 1), (5, 0))])
+		T.assert_equal(self.chess_board.is_empty_square(4, 0), True)
+		T.assert_equal(self.chess_board[5][0], 'p')
 
 		self.chess_board[1][6] = 'p'
 		self.chess_board[3][7] = 'P'
-		self.chess_rules.action = common.BLACK
-		self.make_legal_move((1, 6), (3, 6))
-		T.assert_sets_equal(
-			set(self.chess_rules.get_legal_moves(4, 1)),
-			set([(2, 7), (2, 6)])
+		self.chess_rules.action = common.WHITE
+		self.make_legal_moves([((1, 6), (3, 6)), ((3, 7), (2, 6))])
+		T.assert_equal(self.chess_board.is_empty_square(3, 6), True)
+		T.assert_equal(self.chess_board[2][6], 'P')
+
+	def test_basic_promotion(self):
+		self.make_legal_moves([((0, 4), (1, 4)), ((7, 4), (6, 4))])
+		self.chess_board[6][0] = 'p'
+		self.chess_board[1][0] = 'P'
+
+		T.assert_raises(
+			common.IllegalMoveError,
+			self.make_legal_move,
+			(6, 0), (7, 0)
 		)
+		self.make_legal_promotion((6, 0), (7, 0), promotion='Q')
+		T.assert_equal(self.chess_board[7][0], 'q')
+
+		T.assert_raises(
+			common.IllegalMoveError,
+			self.make_legal_move,
+			(6, 0), (7, 0)
+		)
+		self.make_legal_promotion((1, 0), (0, 0), promotion='Q')
+		T.assert_equal(self.chess_board[0][0], 'Q')
+		self.chess_board.print_games()
 
 
 class DefaultBoardChessRulesTestCase(BaseChessRulesTestCase):
