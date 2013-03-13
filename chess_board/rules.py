@@ -25,6 +25,7 @@ class ChessRulesLegalMoveFunctionRegistrar(type):
 			piece=piece
 		)
 
+
 class ChessRules(object):
 
 	__metaclass__ = ChessRulesLegalMoveFunctionRegistrar
@@ -55,12 +56,25 @@ class ChessRules(object):
 	def is_legal_move(self, source, destination):
 		return destination in self.get_legal_moves(*source)
 
-	def make_legal_move(self, source, destination):
-		if not self.is_legal_move(source, destination):
+	def make_legal_move(self, move_info):
+		if not self.is_legal_move(move_info.source, move_info.destination):
 			raise common.IllegalMoveError()
+		peice = self._board.get_piece(*source)
+
+		# Make sure that we got promotion info if we need it, and that we didn't
+		# get it if we don't.
+		if peice.lower() == 'p' and move_info.destination[0] in (0, 7):
+			if move_info.promotion not in ('Q', 'R', 'B', 'N'):
+				raise common.IllegalMoveError()
+		else:
+			if move_info.promotion is not None:
+				raise common.IllegalMoveError()
+
+		self._board.make_move(move_info.source, move_info.destination)
+		if move_info.promotion is not None:
+			self._board.set_piece(*destination, peice=move_info.promotion)
 		self.action = common.opponent_of(self.action)
-		self.moves.append((source, dest))
-		self._board
+		self.moves.append(move_info)
 
 	############################################################################
 	# Private Methods

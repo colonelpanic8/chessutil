@@ -24,17 +24,15 @@ class ChessNotationProcessorTest(T.TestCase):
 	def clear_board(self):
 		clear_everything_but_kings_from_board(self.chess_board)
 
-	def test_double_pawn_move(self):
+	def test_pawn_move_parsing(self):
 		self.chess_board.set_piece(
 			*self.notation_processor.square_name_to_indices('e2'),
 			piece='p'
 		)
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('e4'),
-			((1, 4), (3, 4))
+			common.MoveInfo((1, 4), (3, 4))
 		)
-		T.assert_equal(
-			self
 
 		self.chess_board.set_piece(
 			*self.notation_processor.square_name_to_indices('e3'),
@@ -43,7 +41,7 @@ class ChessNotationProcessorTest(T.TestCase):
 
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('e4'),
-			((2, 4), (3, 4))
+			common.MoveInfo((2, 4), (3, 4))
 		)
 
 		self.chess_board.set_piece(
@@ -52,7 +50,7 @@ class ChessNotationProcessorTest(T.TestCase):
 		)
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('exd4'),
-			((2, 4), (3, 3))
+			common.MoveInfo((2, 4), (3, 3))
 		)
 
 		self.chess_board.set_piece(
@@ -65,7 +63,11 @@ class ChessNotationProcessorTest(T.TestCase):
 		)
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('exf7+'),
-			((5, 4), (6, 5))
+			common.MoveInfo((5, 4), (6, 5))
+		)
+		T.assert_equal(
+			self.notation_processor.parse_algebraic_move('exf7#'),
+			common.MoveInfo((5, 4), (6, 5))
 		)
 
 	def test_promotion(self):
@@ -75,7 +77,11 @@ class ChessNotationProcessorTest(T.TestCase):
 		)
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('a8=Q+'),
-			((6, 0), (7, 0))
+			common.PromotionMoveInfo((6, 0), (7, 0), 'Q')
+		)
+		T.assert_equal(
+			self.notation_processor.parse_algebraic_move('a8=R+'),
+			common.PromotionMoveInfo((6, 0), (7, 0), 'R')
 		)
 
 	def test_file_disambiguation(self):

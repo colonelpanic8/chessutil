@@ -1,3 +1,7 @@
+import functools
+from collections import namedtuple
+
+
 WHITE = 1
 NONE = 0
 BLACK = -1
@@ -8,6 +12,10 @@ _bool_or_none_to_color_map = {
 	False: BLACK,
 	None: NONE
 }
+
+
+PromotionMoveInfo = namedtuple('MoveInfo', ['source', 'destination', 'promotion'])
+MoveInfo = functools.partial(PromotionMoveInfo, promotion=None)
 
 
 def make_eight(item):

@@ -41,7 +41,7 @@ class ChessNotationProcessor(object):
 		)
 
 	def parse_algebraic_move(self, algebraic_move):
-		algebraic_move = algebraic_move.strip(' \n+')
+		algebraic_move = algebraic_move.strip(' \n+#')
 
 		# Handle Castling
 		if algebraic_move == "O-O":
@@ -66,10 +66,10 @@ class ChessNotationProcessor(object):
 			if disambiguation:
 				pass
 			else:
-				return self._piece_char_to_function_map[piece_type](destination)
+				return common.MoveInfo(*self._piece_char_to_function_map[piece_type](destination))
 
 	def _parse_king_move(self, destination):
-		return (self.get_king_postion_for_color(), destination)
+		return (self._board.get_king_postion_for_color(), destination)
 
 	def _parse_queen_move(self, destination, disambiguation=None):
 		pass
@@ -84,11 +84,15 @@ class ChessNotationProcessor(object):
 		pass
 
 	def _parse_pawn_move(self, algebraic_move):
-        # Clean up the textmove
+		# Clean up the textmove
 		"".join(algebraic_move.split("e.p."))
 
 		if '=' in algebraic_move:
-			return None
+			equals_position = algebraic_move.index('=')
+			promotion = algebraic_move[equals_position+1]
+			algebraic_move = algebraic_move[:equals_position]
+		else:
+			promotion = None
 
 		destination = self.square_name_to_indices(algebraic_move[-2:])
 		disambiguation = algebraic_move[:-2]
@@ -99,4 +103,4 @@ class ChessNotationProcessor(object):
 		else:
 			source = (destination[0] - 1, destination[1])
 
-		return (source, destination)
+		return common.PromotionMoveInfo(source, destination, promotion)
