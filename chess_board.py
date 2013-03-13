@@ -13,20 +13,17 @@ class ActiveColorError(Exception):
 	pass
 
 
-class ChessBoardLegalMoveFunctionRegistrar(type):
+class ChessRulesLegalMoveFunctionRegistrar(type):
+
+	peice_to_funtion_map = {}
 
 	def __init__(self, *args, **kwargs):
-		self.peice_to_funtion_name_map = {}
-		for attr_name, attr in inspect.getmembers(self):
-			peice = getattr(attr, 'peice_to_register_for', False)
-			if peice:
-				assert peice not in self.peice_to_funtion_name_map
-				self.peice_to_funtion_name_map[peice] = attr_name
+		self.peice_to_funtion_map = self.peice_to_funtion_map
 		super(ChessBoardLegalMoveFunctionRegistrar, self).__init__(*args, **kwargs)
 
 	@classmethod
 	def register_legal_move_function(cls, function, peice):
-		function.peice_to_register_for = peice
+		cls.peice_to_funtion_map[peice] = function
 		return function
 
 	@classmethod
@@ -39,7 +36,7 @@ class ChessBoardLegalMoveFunctionRegistrar(type):
 
 class ChessBoard(object):
 
-	__metaclass__ = ChessBoardLegalMoveFunctionRegistrar
+	__metaclass__ = ChessRulesLegalMoveFunctionRegistrar
 
 	WHITE = 1
 	NONE = 0
@@ -147,7 +144,7 @@ class ChessBoard(object):
 			self.get_peice_color_on_square(rank_index, file_index) == self.NONE
 
 	def _get_legal_moves_function_for_peice(self, peice):
-		return getattr(self, self.peice_to_funtion_name_map[peice.lower()])
+		return self.peice_to_funtion_map[peice.lower()]
 
 	def _is_peice_white(self, peice):
 		if peice:
@@ -177,7 +174,7 @@ class ChessBoard(object):
 
 	def _get_squares_threatened_by(self, rank_index, file_index):
 		peice = self.get_peice(rank_index, file_index)
-		return self._get_legal_moves_function_for_peice(peice)(rank_index, file_index)
+		return self._get_legal_moves_function_for_peice(peice)(self, rank_index, file_index)
 
 	def _get_king_postion_for_color(self, color=WHITE):
 		if color == self.WHITE:
