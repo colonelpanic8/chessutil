@@ -16,23 +16,29 @@ class ChessNotationProcessorTest(T.TestCase):
 	def notation_processor(self):
 		return notation.ChessNotationProcessor(self.chess_board)
 
+	@T.let
+	def chess_rules(self):
+		return self.notation_processor._rules
+
 	@T.setup
 	def clear_board(self):
 		clear_everything_but_kings_from_board(self.chess_board)
 
 	def test_double_pawn_move(self):
-		self.chess_board.set_peice(
+		self.chess_board.set_piece(
 			*self.notation_processor.square_name_to_indices('e2'),
-			peice='p'
+			piece='p'
 		)
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('e4'),
 			((1, 4), (3, 4))
 		)
+		T.assert_equal(
+			self
 
-		self.chess_board.set_peice(
+		self.chess_board.set_piece(
 			*self.notation_processor.square_name_to_indices('e3'),
-			peice='p'
+			piece='p'
 		)
 
 		T.assert_equal(
@@ -40,19 +46,36 @@ class ChessNotationProcessorTest(T.TestCase):
 			((2, 4), (3, 4))
 		)
 
-		self.chess_board.set_peice(
+		self.chess_board.set_piece(
 			*self.notation_processor.square_name_to_indices('d4'),
-			peice='P'
+			piece='P'
 		)
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('exd4'),
 			((2, 4), (3, 3))
 		)
 
+		self.chess_board.set_piece(
+			*self.notation_processor.square_name_to_indices('f7'),
+			piece='P'
+		)
+		self.chess_board.set_piece(
+			*self.notation_processor.square_name_to_indices('e6'),
+			piece='p'
+		)
+		T.assert_equal(
+			self.notation_processor.parse_algebraic_move('exf7+'),
+			((5, 4), (6, 5))
+		)
+
 	def test_promotion(self):
-		self.chess_board.set_peice(
+		self.chess_board.set_piece(
 			*self.notation_processor.square_name_to_indices('a7'),
-			peice='P'
+			piece='P'
+		)
+		T.assert_equal(
+			self.notation_processor.parse_algebraic_move('a8=Q+'),
+			((6, 0), (7, 0))
 		)
 
 	def test_file_disambiguation(self):

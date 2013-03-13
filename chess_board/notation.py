@@ -23,7 +23,7 @@ class ChessNotationProcessor(object):
 			board = BasicChessBoard()
 		self._board = board
 		self._rules = rules.ChessRules(self._board)
-		self._peice_char_to_function_map = {
+		self._piece_char_to_function_map = {
 			'K': self._parse_king_move,
 			'Q': self._parse_queen_move,
 			'R': self._parse_rook_move,
@@ -41,7 +41,7 @@ class ChessNotationProcessor(object):
 		)
 
 	def parse_algebraic_move(self, algebraic_move):
-		algebraic_move = algebraic_move.strip()
+		algebraic_move = algebraic_move.strip(' \n+')
 
 		# Handle Castling
 		if algebraic_move == "O-O":
@@ -56,31 +56,31 @@ class ChessNotationProcessor(object):
 			else:
 				return ((4, 7), (2, 7))
 
-		if algebraic_move.islower():
+		if algebraic_move[0].islower():
 			return self._parse_pawn_move(algebraic_move)
 		else:
-			peice_type = algebraic_move[0]
+			piece_type = algebraic_move[0]
 			disambiguation = algebraic_move[1:-2]
 			disambiguation.strip('x')
 			destination = self.square_name_to_indices(algebraic_move[-2:])
 			if disambiguation:
 				pass
 			else:
-				return self._peice_char_to_function_map[peice_type](destination)
+				return self._piece_char_to_function_map[piece_type](destination)
 
 	def _parse_king_move(self, destination):
 		return (self.get_king_postion_for_color(), destination)
 
-	def _parse_queen_move(self, destination):
+	def _parse_queen_move(self, destination, disambiguation=None):
 		pass
 
-	def _parse_rook_move(self, destination):
+	def _parse_rook_move(self, destination, disambiguation=None):
 		pass
 
-	def _parse_bishop_move(self, destination):
+	def _parse_bishop_move(self, destination, disambiguation=None):
 		pass
 
-	def _parse_knight_move(self, destination):
+	def _parse_knight_move(self, destination, disambiguation=None):
 		pass
 
 	def _parse_pawn_move(self, algebraic_move):
@@ -94,7 +94,7 @@ class ChessNotationProcessor(object):
 		disambiguation = algebraic_move[:-2]
 		if disambiguation:
 			source = (destination[0] - 1, self.file_to_index(disambiguation[0]))
-		elif destination[0] == 3 and not self._board.get_peice(2, destination[1]):
+		elif destination[0] == 3 and not self._board.get_piece(2, destination[1]):
 			source = (1, destination[1])
 		else:
 			source = (destination[0] - 1, destination[1])

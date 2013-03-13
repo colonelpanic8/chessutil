@@ -20,3 +20,11 @@ def opponent_of(color):
 
 class ActiveColorError(Exception):
 	pass
+
+
+class IllegalSquareError(Exception):
+	pass
+
+
+class IllegalMoveError(Exception):
+	pass

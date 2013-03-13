@@ -7,22 +7,22 @@ from . import common
 
 class ChessRulesLegalMoveFunctionRegistrar(type):
 
-	peice_to_funtion_map = {}
+	piece_to_funtion_map = {}
 
 	def __init__(self, *args, **kwargs):
-		self.peice_to_funtion_map = self.peice_to_funtion_map
+		self.piece_to_funtion_map = self.piece_to_funtion_map
 		super(ChessRulesLegalMoveFunctionRegistrar, self).__init__(*args, **kwargs)
 
 	@classmethod
-	def register_legal_move_function(cls, function, peice):
-		cls.peice_to_funtion_map[peice] = function
+	def register_legal_move_function(cls, function, piece):
+		cls.piece_to_funtion_map[piece] = function
 		return function
 
 	@classmethod
-	def register_for_peice(cls, peice):
+	def register_for_piece(cls, piece):
 		return functools.partial(
 			cls.register_legal_move_function,
-			peice=peice
+			piece=piece
 		)
 
 class ChessRules(object):
@@ -33,9 +33,11 @@ class ChessRules(object):
 		if board == None:
 			board = board.BasicChessBoard()
 		self._board = board
+		self.action = common.WHITE
+		self.moves = []
 
 	def get_legal_moves(self, rank_index, file_index):
-		if self._board.get_peice_color_on_square(rank_index, file_index) != self._board.action:
+		if self._board.get_piece_color_on_square(rank_index, file_index) != self._board.action:
 			raise ActiveColorError()
 		return self._filter_moves_for_king_safety(
 			(rank_index, file_index),
@@ -45,35 +47,45 @@ class ChessRules(object):
 	def is_square_threatened(self, square, by_color=common.WHITE):
 		for i in range(8):
 			for j in range(8):
-				if self._board.get_peice_color_on_square(i, j) == by_color:
+				if self._board.get_piece_color_on_square(i, j) == by_color:
 					if square in set(self._get_squares_threatened_by(i, j)):
 						return True
 		return False
+
+	def is_legal_move(self, source, destination):
+		return destination in self.get_legal_moves(*source)
+
+	def make_legal_move(self, source, destination):
+		if not self.is_legal_move(source, destination):
+			raise common.IllegalMoveError()
+		self.action = common.opponent_of(self.action)
+		self.moves.append((source, dest))
+		self._board
 
 	############################################################################
 	# Private Methods
 	############################################################################
 
-	def _get_legal_moves_function_for_peice(self, peice):
-		return self.peice_to_funtion_map[peice.lower()]
+	def _get_legal_moves_function_for_piece(self, piece):
+		return self.piece_to_funtion_map[piece.lower()]
 
 	def _get_squares_threatened_by(self, rank_index, file_index):
-		peice = self._board.get_peice(rank_index, file_index)
-		return self._get_legal_moves_function_for_peice(peice)(self, rank_index, file_index)
+		piece = self._board.get_piece(rank_index, file_index)
+		return self._get_legal_moves_function_for_piece(piece)(self, rank_index, file_index)
 
 	def _filter_moves_for_king_safety(self, start_position, moves):
-		peice = self._board.get_peice(*start_position)
-		peice_color = self._board.get_peice_color_on_square(*start_position)
-		king_position = self._board.get_king_postion_for_color(peice_color)
+		piece = self._board.get_piece(*start_position)
+		piece_color = self._board.get_piece_color_on_square(*start_position)
+		king_position = self._board.get_king_postion_for_color(piece_color)
 		delta_board = chess_board.DeltaChessBoard(self._board)
 		delta_rules = ChessRules(delta_board)
 
-		if peice.lower() != 'k':
+		if piece.lower() != 'k':
 			# Do an initial check to see if we can avoid checking every move.
-			delta_board.set_peice(*start_position)
+			delta_board.set_piece(*start_position)
 			if not delta_rules.is_square_threatened(
 				king_position,
-				by_color=common.opponent_of(peice_color)
+				by_color=common.opponent_of(piece_color)
 			):
 				return moves
 
@@ -83,7 +95,7 @@ class ChessRules(object):
 			delta_board.make_move(start_position, move)
 			if not delta_rules.is_square_threatened(
 				king_position,
-				by_color=common.opponent_of(peice_color)
+				by_color=common.opponent_of(piece_color)
 			):
 				king_safe_moves.append(move)
 
@@ -92,7 +104,7 @@ class ChessRules(object):
 	_diagonals = [(-1, 1), (1, -1), (1, 1), (-1, -1)]
 	_straights = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
-	def _threatened_moves_for_sliding_peice(
+	def _threatened_moves_for_sliding_piece(
 		self,
 		rank_index,
 		file_index,
@@ -100,7 +112,7 @@ class ChessRules(object):
 		diagonal=False
 	):
 		opponent_color = common.opponent_of(
-			self._board.get_peice_color_on_square(rank_index, file_index)
+			self._board.get_piece_color_on_square(rank_index, file_index)
 		)
 		directions = []
 		if diagonal:
@@ -116,15 +128,15 @@ class ChessRules(object):
 				threatened_moves.append((current_rank, current_file))
 				current_rank += rank_direction
 				current_file += file_direction
-			if self._board.is_color_peice_on_square(current_rank, current_file, color=opponent_color):
+			if self._board.is_color_piece_on_square(current_rank, current_file, color=opponent_color):
 				threatened_moves.append((current_rank, current_file))
 
 		return threatened_moves
 
-	@ChessRulesLegalMoveFunctionRegistrar.register_for_peice('k')
+	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('k')
 	def _threatened_moves_for_king(self, rank_index, file_index):
 		opponent_color = common.opponent_of(
-			self._board.get_peice_color_on_square(rank_index, file_index)
+			self._board.get_piece_color_on_square(rank_index, file_index)
 		)
 
 		threatened_moves = []
@@ -135,24 +147,24 @@ class ChessRules(object):
 				threatened_moves.append((move_rank, move_file))
 		return threatened_moves
 
-	@ChessRulesLegalMoveFunctionRegistrar.register_for_peice('q')
+	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('q')
 	def _threatened_moves_for_queen(self, *args):
-		return self._threatened_moves_for_sliding_peice(*args, straight=True, diagonal=True)
+		return self._threatened_moves_for_sliding_piece(*args, straight=True, diagonal=True)
 
-	@ChessRulesLegalMoveFunctionRegistrar.register_for_peice('r')
+	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('r')
 	def _threatened_moves_for_rook(self, *args):
-		return self._threatened_moves_for_sliding_peice(*args, straight=True)
+		return self._threatened_moves_for_sliding_piece(*args, straight=True)
 
-	@ChessRulesLegalMoveFunctionRegistrar.register_for_peice('b')
+	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('b')
 	def _threatened_moves_for_bishop(self, *args):
-		return self._threatened_moves_for_sliding_peice(*args, diagonal=True)
+		return self._threatened_moves_for_sliding_piece(*args, diagonal=True)
 
 	knight_deltas = [(1, 2), (2, 1), (-1, 2), (-2, 1), (1, -2), (2, -1), (-1, -2), (-2, -1)]
 
-	@ChessRulesLegalMoveFunctionRegistrar.register_for_peice('n')
+	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('n')
 	def _threatened_moves_for_knight(self, rank_index, file_index):
 		opponent_color = common.opponent_of(
-			self._board.get_peice_color_on_square(rank_index, file_index)
+			self._board.get_piece_color_on_square(rank_index, file_index)
 		)
 
 		threatened_moves = []
@@ -164,12 +176,12 @@ class ChessRules(object):
 		return threatened_moves
 
 	def _check_pawn_capture_move(self, rank_index, file_index, opponent_color=common.WHITE):
-		return self._board.is_color_peice_on_square(rank_index, file_index, color=opponent_color)
+		return self._board.is_color_piece_on_square(rank_index, file_index, color=opponent_color)
 
-	@ChessRulesLegalMoveFunctionRegistrar.register_for_peice('p')
+	@ChessRulesLegalMoveFunctionRegistrar.register_for_piece('p')
 	def _threatened_moves_for_pawn(self, rank_index, file_index):
 		opponent_color = common.opponent_of(
-			self._board.get_peice_color_on_square(rank_index, file_index)
+			self._board.get_piece_color_on_square(rank_index, file_index)
 		)
 		threatened_moves = []
 
