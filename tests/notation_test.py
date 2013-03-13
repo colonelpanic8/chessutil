@@ -15,7 +15,8 @@ class NotationProcessorTestCase(T.TestCase):
 		return board.ChessBoard()
 
 	def test_parse_algebraic_move(self):
-		notation_processor.parse_algebraic_move(self.board, 'e4')
+		T.assert_equal(
+			notation_processor.parse_algebraic_move(self.board, 'e4')
 
 
 if __name__ == '__main__':
