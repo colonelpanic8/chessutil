@@ -51,7 +51,7 @@ class ChessRulesTestCase(T.TestCase):
 		)
 
 		# There should be no available moves because of the double check.
-		self.chess_board.set_peice(1, 5, 'B')
+		self.chess_board.set_piece(1, 5, 'B')
 		T.assert_sets_equal(set(self.chess_rules.get_legal_moves(1,4)), set())
 
 		# The king has to take.
