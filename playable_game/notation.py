@@ -74,11 +74,11 @@ class ChessNotationProcessor(object):
 		destination = self.square_name_to_indices(algebraic_move[-2:])
 		disambiguation = algebraic_move[:-2]
 		if disambiguation:
-			source = (destination[0] - 1, self.file_to_index(disambiguation[0]))
+			source = (destination[0] - self._rules.action, self.file_to_index(disambiguation[0]))
 		elif destination[0] == 3 and not self._board.get_piece(2, destination[1]):
 			source = (1, destination[1])
 		else:
-			source = (destination[0] - 1, destination[1])
+			source = (destination[0] - self._rules.action, destination[1])
 
 		return common.PromotionMoveInfo(source, destination, promotion)
 

@@ -1,39 +1,12 @@
-import testify as T
-
-from . import clear_everything_but_kings_from_board
-from playable_game import common
-from playable_game import board
-from playable_game import notation
+from . import *
 
 
-class ChessNotationProcessorTest(T.TestCase):
-
-	@T.let
-	def chess_board(self):
-		return board.BasicChessBoard()
-
-	@T.let
-	def notation_processor(self):
-		return notation.ChessNotationProcessor(self.chess_board)
-
-	@T.let
-	def chess_rules(self):
-		return self.notation_processor._rules
-
-	@T.setup
-	def clear_board(self):
-		clear_everything_but_kings_from_board(self.chess_board)
+class ChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCase):
 
 	def check_move_info(self, algebraic_move, *args):
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move(algebraic_move),
 			common.MoveInfo(*args)
-		)
-
-	def set_piece(self, algebraic_move, piece):
-		self.chess_board.set_piece(
-			*notation.ChessNotationProcessor.square_name_to_indices(algebraic_move),
-			piece=piece
 		)
 
 	def test_pawn_move_parsing(self):
@@ -56,7 +29,7 @@ class ChessNotationProcessorTest(T.TestCase):
 		self.chess_rules.action = common.BLACK
 		self.set_piece('e5', 'P')
 		self.check_move_info('e4', (4, 4), (3, 4))
-		self.check_move_info('exd4', (4, 4) (3, 3))
+		self.check_move_info('exd4', (4, 4), (3, 3))
 
 	def test_promotion(self):
 		self.set_piece('a7', 'P')
@@ -82,42 +55,57 @@ class ChessNotationProcessorTest(T.TestCase):
 
 	def test_castling(self):
 		self.chess_rules.action = common.WHITE
-		T.assert_equal(
-			self.notation_processor.parse_algebraic_move('O-O'),
-			common.MoveInfo((0, 4), (0, 6))
-		)
-		T.assert_equal(
-			self.notation_processor.parse_algebraic_move('O-O-O'),
-			common.MoveInfo((0, 4), (0, 2))
-		)
+		self.check_move_info('O-O', (0, 4), (0, 6))
+		self.check_move_info('O-O-O', (0, 4), (0, 2))
 
 		self.chess_rules.action = common.BLACK
-		T.assert_equal(
-			self.notation_processor.parse_algebraic_move('O-O'),
-			common.MoveInfo((7, 4), (7, 6))
-		)
-		T.assert_equal(
-			self.notation_processor.parse_algebraic_move('O-O-O'),
-			common.MoveInfo((7, 4), (7, 2))
-		)
+		self.check_move_info('O-O', (7, 4), (7, 6))
+		self.check_move_info('O-O-O', (7, 4), (7, 2))
 
 	def test_rank_and_file_disambiguation(self):
 		self.check_move_info('Qa4xa5', (3, 0), (4, 0))
 
-	def test_bishop_move_no_disambiguation(self):
+	def test_bishop_moves(self):
+		self.chess_board[0][5] = 'b'
+		self.check_move_info('Bb5', (0, 5), (1, 4))
+
+		self.chess_board[0][5] = None
+		self.chess_board[1][4] = 'b'
+		self.check_move_info('Bb5', (1, 4), (1, 4))
+
+		self.chess_board[0][5] = 'b'
+		self.check_move_info('Beb5', (1, 4), (1, 4))
+		self.check_move_info('Bab5', (5, 0), (1, 4))
+
+		self.chess_board[5][0] = 'b'
+		self.check_move_info('Beb5', (1, 4), (1, 4))
+		self.check_move_info('Bab5', (5, 0), (1, 4))
+
+		self.chess_board[3][0] = 'b'
+		self.check_move_info('Ba4b5', (3, 0) (1, 4))
+
+	def test_knight_moves(self):
+		self.set_peice('e2', 'n')
+		self.check_move_info('Ng3', (1, 4), (2, 6))
+		self.check_move_info('Nf4', (1, 4), (2, 5))
+
+		self.set_peice('e2', 'n')
+		self.check_move_info('N1g3', (1, 4), (2, 6))
+		self.check_move_info('N3g3', (1, 4), (2, 6))
+		self.check_move_info('Nf4', (1, 4), (2, 5))
+
+	def test_rook_moves(self):
 		pass
 
-	def test_knight_move_no_disambiguation(self):
+	def test_queen_moves(self):
 		pass
 
-	def test_rook_move_no_disambiguation(self):
-		pass
+	def test_king_moves(self):
+		self.chess_rules.action = common.WHITE
+		self.check_move_info('Ke2', (0, 4), (1, 4))
 
-	def test_queen_move_no_disambiguation(self):
-		pass
-
-	def test_king_move(self):
-		pass
+		self.chess_rules.action = common.BLACK
+		self.check_move_info('Ke7', (7, 4), (6, 4))
 
 
 if __name__ == '__main__':

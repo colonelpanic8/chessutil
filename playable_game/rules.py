@@ -108,7 +108,7 @@ class ChessRules(object):
 		king_safe_moves = []
 		for move in moves:
 			delta_board.reset_to_parent()
-			delta_board.make_move(start_position, move)
+			delta_board.make_move(start_position, move, piece)
 			if not delta_rules.is_square_threatened(
 				king_position,
 				by_color=common.opponent_of(piece_color)
@@ -211,15 +211,14 @@ class ChessRules(object):
 			self._check_pawn_capture_move,
 			color=piece_color
 		)
-		rank_direction = -1 if piece_color is common.BLACK else 1
-		new_rank = rank_index + rank_direction
+		new_rank = rank_index + piece_color
 		double_move_rank = 3 if piece_color is common.WHITE else 4
 		moves_with_predicates = [
 			((new_rank, file_index + 1), check_capture_move),
 			((new_rank, file_index - 1), check_capture_move),
 			((new_rank, file_index), self._board.is_empty_square),
 			(
-				(rank_index + 2*rank_direction, file_index),
+				(rank_index + (2 * piece_color), file_index),
 				lambda r, f: r == double_move_rank and self._board.is_empty_square(r, f)
 			)
 		]

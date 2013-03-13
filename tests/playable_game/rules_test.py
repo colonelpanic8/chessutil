@@ -1,40 +1,10 @@
-import testify as T
-
-from . import clear_everything_but_kings_from_board
-from playable_game import common
-from playable_game import board
-from playable_game import notation
-from playable_game import rules
+from . import *
 
 
-class BaseChessRulesTestCase(T.TestCase):
-
-	__test__ = False
-
-	@T.let
-	def chess_board(self):
-		return board.BasicChessBoard()
-
-	@T.let
-	def chess_rules(self):
-		return rules.ChessRules(self.chess_board)
-
-	def make_legal_move(self, *args):
-		return self.chess_rules.make_legal_move(common.MoveInfo(*args))
-
-	def make_legal_moves(self, moves):
-		for move in moves:
-			self.make_legal_move(*move)
-
-
-class ClearBoardChessRulesTestCase(BaseChessRulesTestCase):
+class ClearBoardChessRulesTestCase(ClearedBoardPlayableChessGameTestCase):
 
 	def make_legal_promotion(self, *args, **kwargs):
-		return self.chess_rules.make_legal_move(common.PromotionMoveInfo(*args), **kwargs)
-
-	@T.setup
-	def clear_board(self):
-		clear_everything_but_kings_from_board(self.chess_board)
+		return self.chess_rules.make_legal_move(common.PromotionMoveInfo(*args, **kwargs))
 
 	def test_en_passant(self):
 		self.chess_board[6][0] = 'P'
@@ -64,28 +34,42 @@ class ClearBoardChessRulesTestCase(BaseChessRulesTestCase):
 		self.make_legal_promotion((6, 0), (7, 0), promotion='Q')
 		T.assert_equal(self.chess_board[7][0], 'q')
 
+		self.make_legal_promotion((1, 0), (0, 0), promotion='Q')
+		T.assert_equal(self.chess_board[0][0], 'Q')
+
+	def test_queenside_castling_and_castling_through_check(self):
+		self.chess_board[0][0] = 'r'
+		self.make_legal_move((0, 4), (0, 2))
+		T.assert_equal(chess_board[0][2], 'k')
+		T.assert_equal(chess_board[0][3], 'r')
+		T.assert_equal(chess_board[0][4], None)
+		T.assert_equal(chess_board[0][0], None)
+
+		self.chess_board[7][0] = 'R'
 		T.assert_raises(
 			common.IllegalMoveError,
 			self.make_legal_move,
-			(6, 0), (7, 0)
+			(7, 4), (7, 2)
 		)
-		self.make_legal_promotion((1, 0), (0, 0), promotion='Q')
-		T.assert_equal(self.chess_board[0][0], 'Q')
-		self.chess_board.print_games()
+		chess_board[0][3] = None
+		self.make_legal_move((7, 4), (7, 2))
+		T.assert_equal(chess_board[7][2], 'K')
+		T.assert_equal(chess_board[7][3], 'R')
 
 
-class DefaultBoardChessRulesTestCase(BaseChessRulesTestCase):
+class DefaultBoardChessRulesTestCase(BasePlayableChessGameTestCase):
 
-	def test_kingside_castling(self):
-		moves = [
-			((1, 4), (3, 4)),
-			((6, 4), (4, 4)),
-			((0, 6), (2, 5)),
-			((7, 6), (5, 5)),
-			((0, 5), (1, 4)),
-			((7, 5), (6, 4)),
-		]
-		for move_num, move in enumerate(moves):
+	moves_for_castling = [
+		((1, 4), (3, 4)),
+		((6, 4), (4, 4)),
+		((0, 6), (2, 5)),
+		((7, 6), (5, 5)),
+		((0, 5), (1, 4)),
+		((7, 5), (6, 4)),
+	]
+
+	def test_kingside_castling_and_castling_while_in_check(self):
+		for move_num, move in enumerate(self.moves_for_castling):
 			self.make_legal_move(*move)
 			rank = (move_num + 1) % 2 * 7
 			assert (rank, 6) not in self.chess_rules.get_legal_moves(rank, 4)
@@ -93,7 +77,16 @@ class DefaultBoardChessRulesTestCase(BaseChessRulesTestCase):
 		self.make_legal_move((0, 4), (0, 6))
 		T.assert_equal(self.chess_board[0][6], 'k')
 		T.assert_equal(self.chess_board[0][5], 'r')
+		T.assert_equal(self.chess_board[0][4], None)
+		T.assert_equal(self.chess_board[0][7], None)
 
+		self.chess_board[4][6] = 'R'
+		T.assert_raises(
+			common.IllegalMoveError,
+			self.make_legal_move,
+			(7, 4), (7, 6)
+		)
+		self.chess_board[4][6] = None
 		self.make_legal_move((7, 4), (7, 6))
 		T.assert_equal(self.chess_board[7][6], 'K')
 		T.assert_equal(self.chess_board[7][5], 'R')
