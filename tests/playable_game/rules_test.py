@@ -68,6 +68,29 @@ class DefaultBoardChessRulesTestCase(BasePlayableChessGameTestCase):
 		((7, 5), (6, 4)),
 	]
 
+	def test_kingside_castling_fails_when_rook_moves_back_into_position(self):
+		self.make_legal_moves(self.moves_for_castling)
+		self.make_legal_moves([
+			((0, 7), (0, 6)),
+			((7, 7), (7, 6)),
+			((0, 6), (0, 7)),
+			((7, 6), (7, 7))
+		])
+
+		T.assert_raises(
+			common.IllegalMoveError,
+			self.make_legal_move,
+			(0, 4), (0, 6)
+		)
+
+		self.make_legal_move((0, 4), (0, 5))
+
+		T.assert_raises(
+			common.IllegalMoveError,
+			self.make_legal_move,
+			(7, 4), (7, 6)
+		)
+
 	def test_kingside_castling_and_castling_while_in_check(self):
 		for move_num, move in enumerate(self.moves_for_castling):
 			self.make_legal_move(*move)
@@ -80,13 +103,13 @@ class DefaultBoardChessRulesTestCase(BasePlayableChessGameTestCase):
 		T.assert_equal(self.chess_board[0][4], None)
 		T.assert_equal(self.chess_board[0][7], None)
 
-		self.chess_board[4][6] = 'R'
+		self.chess_board[6][4] = 'R'
 		T.assert_raises(
 			common.IllegalMoveError,
 			self.make_legal_move,
 			(7, 4), (7, 6)
 		)
-		self.chess_board[4][6] = None
+		self.chess_board[6][4] = None
 		self.make_legal_move((7, 4), (7, 6))
 		T.assert_equal(self.chess_board[7][6], 'K')
 		T.assert_equal(self.chess_board[7][5], 'R')
