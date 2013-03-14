@@ -7,17 +7,17 @@ from . import common
 
 class ChessRulesFunctionRegistrar(type):
 
-	piece_to_threatened_funtion_map = {}
+	piece_to_threatened_function_map = {}
 	piece_to_find_function_map = {}
 
 	def __init__(self, *args, **kwargs):
-		self._piece_to_threatened_funtion_map = self.piece_to_threatened_funtion_map
+		self._piece_to_threatened_function_map = self.piece_to_threatened_function_map
 		self._piece_to_find_function_map = self.piece_to_find_function_map
 		super(ChessRulesFunctionRegistrar, self).__init__(*args, **kwargs)
 
 	@classmethod
 	def register_threatened_move_function(cls, function, piece):
-		cls.piece_to_threatened_funtion_map[piece] = function
+		cls.piece_to_threatened_function_map[piece] = function
 		return function
 
 	@classmethod
@@ -28,14 +28,14 @@ class ChessRulesFunctionRegistrar(type):
 		)
 
 	@classmethod
-	def register_find_for_piece(cls, function, piece):
+	def register_find_piece_function(cls, function, piece):
 		cls.piece_to_find_function_map[piece] = function
 		return function
 
 	@classmethod
 	def register_find_for_piece(cls, piece):
 		return functools.partial(
-			cls.register_find_for_piece,
+			cls.register_find_piece_function,
 			piece=piece
 		)
 
@@ -88,16 +88,26 @@ class ChessRules(object):
 		elif move_info.promotion is not None:
 			raise common.IllegalMoveError("Promotion not allowed for this move.")
 
+		if piece.lower() == 'p' and move_info.destination[1] != move_info.source[1] and \
+		   self._board.is_empty_square(*move_info.destination):
+			self._board.set_piece(move_info.source[0], move_info.destination[1])
+
 		self._board.make_move(move_info.source, move_info.destination, piece)
 		self.action = common.opponent_of(self.action)
 		self.moves.append(move_info)
+
+	def find_piece(self, piece, destination, *args, **kwargs):
+		return self._get_find_function_for_piece(piece)(self, piece, *destination, **kwargs)
 
 	############################################################################
 	# Private Methods
 	############################################################################
 
 	def _get_legal_moves_function_for_piece(self, piece):
-		return self._piece_to_threatened_funtion_map[piece.lower()]
+		return self._piece_to_threatened_function_map[piece.lower()]
+
+	def _get_find_function_for_piece(self, piece):
+		return self._piece_to_find_function_map[piece.lower()]
 
 	def _get_squares_threatened_by(self, rank_index, file_index):
 		piece = self._board.get_piece(rank_index, file_index)
@@ -138,7 +148,6 @@ class ChessRules(object):
 	############################################################################
 	# Theatened Moves Methods
 	############################################################################
-
 
 	def _threatened_moves_for_sliding_piece(
 		self,
@@ -214,11 +223,23 @@ class ChessRules(object):
 		return threatened_moves
 
 	def _check_pawn_capture_move(self, rank_index, file_index, color=common.WHITE):
+		if not self._board.is_legal_square(rank_index, file_index):
+			return False
 		return self._board.is_color_piece_on_square(
 			rank_index,
 			file_index,
 			color=common.opponent_of(color)
-		)
+		) or self._is_enpassant_available(rank_index, file_index, color)
+
+	def _is_enpassant_available(self, rank_index, file_index, color):
+		if not self.moves:
+			return False
+		pawn_to_take_position = (rank_index + (color * -1), file_index)
+		piece = self._board.get_piece(*pawn_to_take_position)
+		return self.moves[-1] == common.MoveInfo(
+			(rank_index + color, file_index),
+			pawn_to_take_position
+		) and piece and piece.lower() == 'p'
 
 	@ChessRulesFunctionRegistrar.register_threatened_for_piece('p')
 	def _threatened_moves_for_pawn(self, rank_index, file_index):
@@ -237,7 +258,9 @@ class ChessRules(object):
 			((new_rank, file_index), self._board.is_empty_square),
 			(
 				(rank_index + (2 * piece_color), file_index),
-				lambda r, f: r == double_move_rank and self._board.is_empty_square(r, f)
+				lambda r, f: r == double_move_rank and \
+				self._board.is_empty_square(r, f) and \
+				self._board.is_empty_square(r - piece_color, f)
 			)
 		]
 		for move_tuple, predicate in moves_with_predicates:
@@ -254,49 +277,54 @@ class ChessRules(object):
 		'q': (True, True),
 		'b': (False, True),
 		'r': (True, False),
-		'Q': (True, True),
-		'B': (False, True),
-		'R': (True, False)
 	}
+
+	def _find_piece_in_squares(self, piece, squares):
+		for square in squares:
+			if self._board.is_legal_square(*square) and self._board.get_piece(*square) == piece:
+				return square
+		raise common.PieceNotFoundError()
 
 	def _find_sliding_piece(
 		self,
-		rank_index,
-		file_index,
 		piece,
+		destination_rank,
+		destination_file,
 		source_rank=None,
 		source_file=None,
 	):
 		directions = []
-		straight, diagonal = self._piece_to_straight_diagonal_tuples[piece]
-		if dest_rank:
-			if source_rank == rank_index:
+		straight, diagonal = self._piece_to_straight_diagonal_tuples[piece.lower()]
+		if source_rank is not None:
+			if source_rank == destination_rank:
 				assert straight
 				directions = [(0, 1), (0, -1)]
 			else:
-				assert diagonal
-				rank_difference = rank_index - source_rank
-				for file_ in (file_index + rank_difference, file_index - rank_difference):
-					square = (source_rank, file_)
-					if not self._board.is_legal_square(*square):
-						continue
-					if self._board.get_piece(*square) == piece:
-						return square
-				raise common.PieceNotFoundError()
-		elif source_file:
-			if source_file == file_index:
+				squares_to_check = []
+				if straight:
+					squares_to_check.append((source_rank, destination_file))
+				if diagonal:
+					rank_difference = destination_rank - source_rank
+					squares_to_check += [
+						(source_rank, destination_file + rank_difference),
+						(source_rank, destination_file - rank_difference)
+					]
+				return self._find_piece_in_squares(piece, squares_to_check)
+		elif source_file is not None:
+			if source_file == destination_file:
 				assert straight
 				directions = [(1, 0), (-1, 0)]
 			else:
-				assert diagonal
-				file_difference = file_index - source_index
-				for rank in (rank_index + file_difference, rank_index - file_difference):
-					square = (rank, source_file)
-					if not self._board.is_legal_square(*square):
-						continue
-					if self._board.get_piece(*square) == piece:
-						return square
-				raise common.PieceNotFoundError()
+				squares_to_check = []
+				if straight:
+					squares_to_check.append((destination_rank, source_file))
+				if diagonal:
+					file_difference = destination_file - source_file
+					squares_to_check += [
+						(destination_rank + file_difference, source_file),
+						(destination_rank - file_difference, source_file)
+					]
+				return self._find_piece_in_squares(piece, squares_to_check)
 		else:
 			if diagonal:
 				directions.extend(self._diagonals)
@@ -304,12 +332,53 @@ class ChessRules(object):
 				directions.extend(self._straights)
 
 		for rank_direction, file_direction in directions:
-			current_rank = rank_index + rank_direction
-			current_file = file_index + file_direction
+			current_rank = destination_rank + rank_direction
+			current_file = destination_file + file_direction
 			while self._board.is_empty_square(current_rank, current_file):
 				current_rank += rank_direction
 				current_file += file_direction
-			if self._board.get_piece(current_rank, current_file):
-				return (current_rank, current_file)
+
+			square = (current_rank, current_file)
+			if self._board.is_legal_square(*square) and self._board.get_piece(*square) == piece:
+				return square
 
 		raise common.PieceNotFoundError()
+
+	_find_queen = ChessRulesFunctionRegistrar.register_find_for_piece('q')(_find_sliding_piece)
+	_find_rook = ChessRulesFunctionRegistrar.register_find_for_piece('r')(_find_sliding_piece)
+	_find_bishop = ChessRulesFunctionRegistrar.register_find_for_piece('b')(_find_sliding_piece)
+
+	@ChessRulesFunctionRegistrar.register_find_for_piece('k')
+	def _find_king(self, *args, **kwargs):
+		return self._board.get_king_postion_for_color(self.action)
+
+	@ChessRulesFunctionRegistrar.register_find_for_piece('n')
+	def _find_knight(
+		self,
+		piece,
+		destination_rank,
+		destination_file,
+		source_rank=None,
+		source_file=None,
+	):
+		if source_rank is not None:
+			rank_difference = source_rank - destination_rank
+			deltas_to_check = [
+				delta for delta in self._knight_deltas
+				if delta[0] == rank_difference
+			]
+		elif source_file is not None:
+			file_difference = source_file - destination_file
+			deltas_to_check = [
+				delta for delta in self._knight_deltas
+				if delta[1] == file_difference
+			]
+		else:
+			deltas_to_check = self._knight_deltas
+
+		squares_to_check = map(
+			lambda delta: (lambda r, f: (r+destination_rank, f+destination_file))(*delta),
+			deltas_to_check
+		)
+
+		return self._find_piece_in_squares(piece, squares_to_check)

@@ -67,53 +67,53 @@ class ChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCase):
 
 	def test_bishop_moves(self):
 		self.chess_board[0][5] = 'b'
-		self.check_move_info('Bb5', (0, 5), (1, 4))
+		self.check_move_info('Bb5', (0, 5), (4, 1))
 
 		self.chess_board[0][5] = None
 		self.chess_board[1][4] = 'b'
-		self.check_move_info('Bb5', (1, 4), (1, 4))
-
-		self.chess_board[0][5] = 'b'
-		self.check_move_info('Beb5', (1, 4), (1, 4))
-		self.check_move_info('Bab5', (5, 0), (1, 4))
+		self.check_move_info('Bb5', (1, 4), (4, 1))
 
 		self.chess_board[5][0] = 'b'
-		self.check_move_info('Beb5', (1, 4), (1, 4))
-		self.check_move_info('Bab5', (5, 0), (1, 4))
+		self.check_move_info('Beb5', (1, 4), (4, 1))
+		self.check_move_info('Bab5', (5, 0), (4, 1))
 
 		self.chess_board[3][0] = 'b'
-		self.check_move_info('Ba4b5', (3, 0) (1, 4))
+		self.check_move_info('Ba4b5', (3, 0), (4, 1))
 
 	def test_knight_moves(self):
 		self.set_piece('e2', 'n')
 		self.check_move_info('Ng3', (1, 4), (2, 6))
-		self.check_move_info('Nf4', (1, 4), (2, 5))
+		self.check_move_info('Nf4', (1, 4), (3, 5))
 
-		self.set_piece('e2', 'n')
-		self.check_move_info('N1g3', (1, 4), (2, 6))
-		self.check_move_info('N3g3', (1, 4), (2, 6))
-		self.check_move_info('Nf4', (1, 4), (2, 5))
+		self.set_piece('e4', 'n')
+		self.check_move_info('N2g3', (1, 4), (2, 6))
+		self.check_move_info('N4g3', (3, 4), (2, 6))
+		self.check_move_info('Nf4', (1, 4), (3, 5))
 
 		self.set_piece('g2', 'n')
-		self.check_move_info('Ngf4', (1, 6), (2, 5))
+		self.check_move_info('Ngf4', (1, 6), (3, 5))
 		self.set_piece('g2', 'N')
-		self.check_move_info('Nf4', (1, 4), (2, 5))
-
+		self.check_move_info('Nf4', (1, 4), (3, 5))
 		self.chess_rules.action = common.BLACK
-		self.check_move_info('Nf4', (1, 6), (2, 5))
+		self.check_move_info('Nf4', (1, 6), (3, 5))
 
 	def test_rook_moves(self):
 		self.chess_rules.action = common.BLACK
 
 		self.set_piece('a4', 'R')
-		self.check_move_info('Re4', (0, 3), (4, 3))
+		self.check_move_info('Re4', (3, 0), (3, 4))
 
 		self.set_piece('h4', 'R')
-		self.check_move_info('Rae4', (0, 3), (4, 3))
-		self.check_move_info('Rhe4', (7, 3), (4, 3))
+		self.check_move_info('Rae4', (3, 0), (3, 4))
+		self.check_move_info('Rhe4', (3, 7), (3, 4))
 
 	def test_queen_moves(self):
-		pass
+		self.set_piece('b4', 'q')
+		self.check_move_info('Qe4', (3, 1), (3, 4))
+
+		self.set_piece('b1', 'q')
+		self.check_move_info('Qc2', (0, 1), (1, 2))
+		self.check_move_info('Q1xe4+', (0, 1), (3, 4))
 
 	def test_king_moves(self):
 		self.chess_rules.action = common.WHITE

@@ -29,4 +29,5 @@ def opponent_of(color):
 class ActiveColorError(Exception): pass
 class IllegalMoveError(Exception): pass
 class IllegalSquareError(Exception): pass
+class InvalidNotationError(Exception): pass
 class PieceNotFoundError(Exception): pass

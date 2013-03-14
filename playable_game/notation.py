@@ -10,13 +10,6 @@ class ChessNotationProcessor(object):
 			board = BasicChessBoard()
 		self._board = board
 		self._rules = rules.ChessRules(self._board)
-		self._piece_char_to_function_map = {
-			'K': self._parse_king_move,
-			'Q': self._parse_queen_move,
-			'R': self._parse_rook_move,
-			'B': self._parse_bishop_move,
-			'N': self._parse_knight_move,
-		}
 
 	def parse_algebraic_move(self, algebraic_move):
 		algebraic_move = algebraic_move.strip(' \n+#!?')
@@ -36,29 +29,38 @@ class ChessNotationProcessor(object):
 		if algebraic_move[0].islower():
 			return self._parse_pawn_move(algebraic_move)
 		else:
+			source_file = None
+			source_rank = None
 			piece_type = algebraic_move[0]
 			disambiguation = algebraic_move[1:-2]
-			disambiguation.strip('x')
+			disambiguation = disambiguation.strip('x')
 			destination = self.square_name_to_indices(algebraic_move[-2:])
 			if disambiguation:
-				pass
-			else:
-				return common.MoveInfo(*self._piece_char_to_function_map[piece_type](destination))
+				length = len(disambiguation)
+				if length > 2:
+					raise common.InvalidNotationError()
+				if length == 2:
+					return common.MoveInfo(
+						self.square_name_to_indices(disambiguation),
+						destination
+					)
+				else:
+					try:
+						value = int(disambiguation)
+					except ValueError:
+						source_file = self.file_to_index(disambiguation)
+					else:
+						source_rank = self.rank_to_index(value)
 
-	def _parse_king_move(self, destination):
-		return (self._board.get_king_postion_for_color(self._rules.action), destination)
-
-	def _parse_queen_move(self, destination, disambiguation=None):
-		pass
-
-	def _parse_rook_move(self, destination, disambiguation=None):
-		pass
-
-	def _parse_bishop_move(self, destination, disambiguation=None):
-		pass
-
-	def _parse_knight_move(self, destination, disambiguation=None):
-		pass
+		if self._rules.action == common.WHITE:
+			piece_type = piece_type.lower()
+		source = self._rules.find_piece(
+			piece_type,
+			destination,
+			source_rank=source_rank,
+			source_file=source_file
+		)
+		return common.MoveInfo(source, destination)
 
 	def _parse_pawn_move(self, algebraic_move):
 		# Clean up the textmove
@@ -84,11 +86,13 @@ class ChessNotationProcessor(object):
 
 	@classmethod
 	def file_to_index(cls, file_char):
+		assert 'a' <= file_char <= 'h'
 		return ord(file_char) - 97
 
 	@classmethod
 	def rank_to_index(cls, rank):
-		return rank - 1
+		assert 0 < int(rank) <= 8
+		return int(rank) - 1
 
 	@classmethod
 	def square_name_to_indices(cls, square_name):
