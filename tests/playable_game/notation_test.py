@@ -85,17 +85,32 @@ class ChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCase):
 		self.check_move_info('Ba4b5', (3, 0) (1, 4))
 
 	def test_knight_moves(self):
-		self.set_peice('e2', 'n')
+		self.set_piece('e2', 'n')
 		self.check_move_info('Ng3', (1, 4), (2, 6))
 		self.check_move_info('Nf4', (1, 4), (2, 5))
 
-		self.set_peice('e2', 'n')
+		self.set_piece('e2', 'n')
 		self.check_move_info('N1g3', (1, 4), (2, 6))
 		self.check_move_info('N3g3', (1, 4), (2, 6))
 		self.check_move_info('Nf4', (1, 4), (2, 5))
 
+		self.set_piece('g2', 'n')
+		self.check_move_info('Ngf4', (1, 6), (2, 5))
+		self.set_piece('g2', 'N')
+		self.check_move_info('Nf4', (1, 4), (2, 5))
+
+		self.chess_rules.action = common.BLACK
+		self.check_move_info('Nf4', (1, 6), (2, 5))
+
 	def test_rook_moves(self):
-		pass
+		self.chess_rules.action = common.BLACK
+
+		self.set_piece('a4', 'R')
+		self.check_move_info('Re4', (0, 3), (4, 3))
+
+		self.set_piece('h4', 'R')
+		self.check_move_info('Rae4', (0, 3), (4, 3))
+		self.check_move_info('Rhe4', (7, 3), (4, 3))
 
 	def test_queen_moves(self):
 		pass

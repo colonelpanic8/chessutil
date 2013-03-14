@@ -26,13 +26,7 @@ def opponent_of(color):
 	return color * -1
 
 
-class ActiveColorError(Exception):
-	pass
-
-
-class IllegalSquareError(Exception):
-	pass
-
-
-class IllegalMoveError(Exception):
-	pass
+class ActiveColorError(Exception): pass
+class IllegalMoveError(Exception): pass
+class IllegalSquareError(Exception): pass
+class PieceNotFoundError(Exception): pass
