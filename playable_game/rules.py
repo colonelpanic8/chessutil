@@ -154,7 +154,6 @@ class ChessRules(object):
 		moves = set(moves)
 		piece = self._board.get_piece(*start_position)
 		piece_color = self._board.get_piece_color_on_square(*start_position)
-		king_position = self._board.get_king_postion_for_color(piece_color)
 		delta_board = board.DeltaChessBoard(self._board)
 		delta_rules = ChessRules(delta_board)
 
@@ -181,7 +180,7 @@ class ChessRules(object):
 			# Do an initial check to see if we can avoid checking every move.
 			delta_board.set_piece(*start_position)
 			if not delta_rules.is_square_threatened(
-				king_position,
+				delta_board.get_king_postion_for_color(piece_color),
 				by_color=common.opponent_of(piece_color)
 			):
 				return moves
@@ -191,7 +190,7 @@ class ChessRules(object):
 			delta_board.reset_to_parent()
 			delta_board.make_move(start_position, move, piece)
 			if not delta_rules.is_square_threatened(
-				king_position,
+				delta_board.get_king_postion_for_color(piece_color),
 				by_color=common.opponent_of(piece_color)
 			):
 				king_safe_moves.append(move)
