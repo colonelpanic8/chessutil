@@ -6,6 +6,8 @@ from .board import BasicChessBoard
 
 class PlayableChessGame(object):
 
+	def __init__(self, 
+
 	def make_move_with_uci_notation(self, move):
 		return self.make_move_with_square_names(move[:2], move[2:])
 

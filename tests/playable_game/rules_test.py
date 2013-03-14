@@ -39,22 +39,23 @@ class ClearBoardChessRulesTestCase(ClearedBoardPlayableChessGameTestCase):
 
 	def test_queenside_castling_and_castling_through_check(self):
 		self.chess_board[0][0] = 'r'
-		self.make_legal_move((0, 4), (0, 2))
-		T.assert_equal(chess_board[0][2], 'k')
-		T.assert_equal(chess_board[0][3], 'r')
-		T.assert_equal(chess_board[0][4], None)
-		T.assert_equal(chess_board[0][0], None)
-
 		self.chess_board[7][0] = 'R'
+		self.make_legal_move((0, 4), (0, 2))
+		T.assert_equal(self.chess_board[0][2], 'k')
+		T.assert_equal(self.chess_board[0][3], 'r')
+		T.assert_equal(self.chess_board[0][4], None)
+		T.assert_equal(self.chess_board[0][0], None)
+
+		# This should raise because the rook blocks the castling of the black king
 		T.assert_raises(
 			common.IllegalMoveError,
 			self.make_legal_move,
 			(7, 4), (7, 2)
 		)
-		chess_board[0][3] = None
+		self.chess_board[0][3] = None
 		self.make_legal_move((7, 4), (7, 2))
-		T.assert_equal(chess_board[7][2], 'K')
-		T.assert_equal(chess_board[7][3], 'R')
+		T.assert_equal(self.chess_board[7][2], 'K')
+		T.assert_equal(self.chess_board[7][3], 'R')
 
 
 class DefaultBoardChessRulesTestCase(BasePlayableChessGameTestCase):
@@ -93,9 +94,9 @@ class DefaultBoardChessRulesTestCase(BasePlayableChessGameTestCase):
 
 	def test_kingside_castling_and_castling_while_in_check(self):
 		for move_num, move in enumerate(self.moves_for_castling):
-			self.make_legal_move(*move)
-			rank = (move_num + 1) % 2 * 7
+			rank = move_num % 2 * 7
 			assert (rank, 6) not in self.chess_rules.get_legal_moves(rank, 4)
+			self.make_legal_move(*move)
 
 		self.make_legal_move((0, 4), (0, 6))
 		T.assert_equal(self.chess_board[0][6], 'k')
@@ -103,7 +104,7 @@ class DefaultBoardChessRulesTestCase(BasePlayableChessGameTestCase):
 		T.assert_equal(self.chess_board[0][4], None)
 		T.assert_equal(self.chess_board[0][7], None)
 
-		self.chess_board[6][4] = 'R'
+		self.chess_board[6][4] = 'r'
 		T.assert_raises(
 			common.IllegalMoveError,
 			self.make_legal_move,

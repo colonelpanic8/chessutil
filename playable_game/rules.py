@@ -22,10 +22,7 @@ class ChessRulesFunctionRegistrar(type):
 
 	@classmethod
 	def register_threatened_for_piece(cls, piece):
-		return functools.partial(
-			cls.register_threatened_move_function,
-			piece=piece
-		)
+		return functools.partial(cls.register_threatened_move_function, piece=piece)
 
 	@classmethod
 	def register_find_piece_function(cls, function, piece):
@@ -34,10 +31,7 @@ class ChessRulesFunctionRegistrar(type):
 
 	@classmethod
 	def register_find_for_piece(cls, piece):
-		return functools.partial(
-			cls.register_find_piece_function,
-			piece=piece
-		)
+		return functools.partial(cls.register_find_piece_function, piece=piece)
 
 
 class ChessRules(object):
@@ -50,6 +44,10 @@ class ChessRules(object):
 		self._board = board
 		self.action = common.WHITE
 		self.moves = []
+		self._white_can_castle_kingside = True
+		self._black_can_castle_kingside = True
+		self._white_can_castle_queenside = True
+		self._black_can_castle_queenside = True
 
 	def get_legal_moves(self, rank_index, file_index):
 		if self._board.get_piece_color_on_square(rank_index, file_index) != self.action:
@@ -80,7 +78,7 @@ class ChessRules(object):
 		# get it if we don't.
 		if piece.lower() == 'p' and move_info.destination[0] in (0, 7):
 			if move_info.promotion not in ('Q', 'R', 'B', 'N'):
-				raise common.IllegalMoveError("You must specify a promotion.")
+				raise common.IllegalMoveError("You must specify a valid promotion.")
 			else:
 				piece = move_info.promotion
 				if self.action == common.WHITE:
@@ -88,9 +86,40 @@ class ChessRules(object):
 		elif move_info.promotion is not None:
 			raise common.IllegalMoveError("Promotion not allowed for this move.")
 
+		if piece.lower() == 'k':
+			if move_info.source[1] == 4:
+				if move_info.destination[1] == 6:
+					# Kingside castle.
+					self._board.make_move(
+						(move_info.source[0], 7),
+						(move_info.source[0], 5)
+					)
+				if move_info.destination[1] == 2:
+					# Queenside castle.
+					self._board.make_move(
+						(move_info.source[0], 0),
+						(move_info.source[0], 3)
+					)
+				# Disable castling after a king move no matter what.
+				if self.action == common.WHITE:
+					self._white_can_castle_queenside = False
+					self._white_can_castle_kingside = False
+				else:
+					self._black_can_castle_queenside = False
+					self._black_can_castle_kingside = False
+
 		if piece.lower() == 'p' and move_info.destination[1] != move_info.source[1] and \
 		   self._board.is_empty_square(*move_info.destination):
 			self._board.set_piece(move_info.source[0], move_info.destination[1])
+
+		if move_info.source == (0, 0):
+			self._white_can_castle_queenside = False
+		if move_info.source == (0, 7):
+			self._white_can_castle_kingside = False
+		if move_info.source == (7, 0):
+			self._black_can_castle_queenside = False
+		if move_info.source == (7, 7):
+			self._black_can_castle_kingside = False
 
 		self._board.make_move(move_info.source, move_info.destination, piece)
 		self.action = common.opponent_of(self.action)
@@ -100,10 +129,12 @@ class ChessRules(object):
 		return self._get_find_function_for_piece(piece)(self, piece, *destination, **kwargs)
 
 	def can_castle_kingside(self, color):
-		return True
+		return self._white_can_castle_kingside if color == common.WHITE \
+			else self._black_can_castle_kingside
 
 	def can_castle_queenside(self, color):
-		return True
+		return self._white_can_castle_queenside if color == common.WHITE \
+			else self._black_can_castle_queenside
 
 	############################################################################
 	# Private Methods
@@ -120,13 +151,33 @@ class ChessRules(object):
 		return self._get_legal_moves_function_for_piece(piece)(self, rank_index, file_index)
 
 	def _filter_moves_for_king_safety(self, start_position, moves):
+		moves = set(moves)
 		piece = self._board.get_piece(*start_position)
 		piece_color = self._board.get_piece_color_on_square(*start_position)
 		king_position = self._board.get_king_postion_for_color(piece_color)
 		delta_board = board.DeltaChessBoard(self._board)
 		delta_rules = ChessRules(delta_board)
 
-		if piece.lower() != 'k':
+		if piece.lower() == 'k':
+			back_rank_index = 0 if piece_color is common.WHITE else 7
+			if start_position == (back_rank_index, 4):
+				castling_square = (back_rank_index, 6)
+				if castling_square in moves and any(
+					self.is_square_threatened(
+						(back_rank_index, file_index),
+						by_color=common.opponent_of(piece_color)
+					) for file_index in range(4, 7)
+				):
+					moves.remove(castling_square)
+				castling_square = (back_rank_index, 2)
+				if castling_square in moves and any(
+					self.is_square_threatened(
+						(back_rank_index, file_index),
+						by_color=common.opponent_of(piece_color)
+					) for file_index in range(2, 5)
+				):
+					moves.remove(castling_square)
+		else:
 			# Do an initial check to see if we can avoid checking every move.
 			delta_board.set_piece(*start_position)
 			if not delta_rules.is_square_threatened(
@@ -191,18 +242,12 @@ class ChessRules(object):
 	def _get_castling_moves_for_color(self, color):
 		back_rank = 0 if color is common.WHITE else 7
 		if self.can_castle_kingside(color) and all(
-			not self.is_square_threatened((back_rank, file_index), by_color=common.opponent_of(color))
-			for file_index in range(4, 7)
-		) and all(
-			self._board.is_square_empty(back_rank, file_index)
+			self._board.is_empty_square(back_rank, file_index)
 			for file_index in range(5, 7)
 		):
 			yield (back_rank, 6)
 		if self.can_castle_queenside(color) and all(
-			not self.is_square_threatened((back_rank, file_index), by_color=common.opponent_of(color))
-			for file_index in range(2, 5)
-		) and all(
-			self._board.is_square_empty(back_rank, file_index)
+			self._board.is_empty_square(back_rank, file_index)
 			for file_index in range(2, 4)
 		):
 			yield (back_rank, 2)

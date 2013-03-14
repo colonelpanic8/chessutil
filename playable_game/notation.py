@@ -1,14 +1,13 @@
 from . import common
-from . import rules
-from .board import BasicChessBoard
+from . import board
 
 
 class ChessNotationProcessor(object):
 
-	def __init__(self, board=None):
-		if board == None:
-			board = BasicChessBoard()
-		self._board = board
+	def __init__(self, chess_board=None):
+		if chess_board == None:
+			chess_board = board.BasicChessBoard()
+		self._board = chess_board
 		self._rules = rules.ChessRules(self._board)
 
 	def parse_algebraic_move(self, algebraic_move):

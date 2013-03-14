@@ -25,7 +25,9 @@ class ChessBoard(object):
 	def get_piece_color(self, piece):
 		return common._bool_or_none_to_color_map[self._is_piece_white(piece)]
 
-	def make_move(self, source, dest, piece):
+	def make_move(self, source, dest, piece=None):
+		if piece is None:
+			piece = self.get_piece(*source)
 		self.set_piece(*dest, piece=piece)
 		self.set_piece(*source)
 
