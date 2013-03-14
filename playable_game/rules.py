@@ -62,9 +62,9 @@ class ChessRules(object):
 	def is_square_threatened(self, square, by_color=common.WHITE):
 		for i in range(8):
 			for j in range(8):
-				if self._board.get_piece_color_on_square(i, j) == by_color:
-					if square in set(self._get_squares_threatened_by(i, j)):
-						return True
+				if self._board.get_piece_color_on_square(i, j) == by_color and \
+				   square in set(self._get_squares_threatened_by(i, j)):
+					return True
 		return False
 
 	def is_legal_move(self, source, destination):
@@ -98,6 +98,12 @@ class ChessRules(object):
 
 	def find_piece(self, piece, destination, *args, **kwargs):
 		return self._get_find_function_for_piece(piece)(self, piece, *destination, **kwargs)
+
+	def can_castle_kingside(self, color):
+		return True
+
+	def can_castle_queenside(self, color):
+		return True
 
 	############################################################################
 	# Private Methods
@@ -182,18 +188,41 @@ class ChessRules(object):
 
 		return threatened_moves
 
+	def _get_castling_moves_for_color(self, color):
+		back_rank = 0 if color is common.WHITE else 7
+		if self.can_castle_kingside(color) and all(
+			not self.is_square_threatened((back_rank, file_index), by_color=common.opponent_of(color))
+			for file_index in range(4, 7)
+		) and all(
+			self._board.is_square_empty(back_rank, file_index)
+			for file_index in range(5, 7)
+		):
+			yield (back_rank, 6)
+		if self.can_castle_queenside(color) and all(
+			not self.is_square_threatened((back_rank, file_index), by_color=common.opponent_of(color))
+			for file_index in range(2, 5)
+		) and all(
+			self._board.is_square_empty(back_rank, file_index)
+			for file_index in range(2, 4)
+		):
+			yield (back_rank, 2)
+
 	@ChessRulesFunctionRegistrar.register_threatened_for_piece('k')
 	def _threatened_moves_for_king(self, rank_index, file_index):
-		opponent_color = common.opponent_of(
-			self._board.get_piece_color_on_square(rank_index, file_index)
-		)
+		piece_color = self._board.get_piece_color_on_square(rank_index, file_index)
 
 		threatened_moves = []
 		for rank_direction, file_direction in self._diagonals + self._straights:
 			move_rank = rank_index + rank_direction
 			move_file = file_index + file_direction
-			if self._board.is_color_or_empty_square(move_rank, move_file, color=opponent_color):
+			if self._board.is_color_or_empty_square(
+				move_rank,
+				move_file,
+				color=common.opponent_of(piece_color)
+			):
 				threatened_moves.append((move_rank, move_file))
+
+		threatened_moves.extend(self._get_castling_moves_for_color(piece_color))
 		return threatened_moves
 
 	@ChessRulesFunctionRegistrar.register_threatened_for_piece('q')
