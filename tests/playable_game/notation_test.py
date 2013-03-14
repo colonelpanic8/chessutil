@@ -1,13 +1,14 @@
 from . import *
 
 
-class ChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCase):
+class ChessNotationProcessorTest(BasePlayableChessGameTestCase):
 
-	def check_move_info(self, algebraic_move, *args):
-		T.assert_equal(
-			self.notation_processor.parse_algebraic_move(algebraic_move),
-			common.MoveInfo(*args)
-		)
+	def test_game_start(self):
+		self.make_legal_move((1, 4), (3, 4))
+		self.check_move_info('e5', (6, 4), (4, 4))
+
+
+class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCase):
 
 	def test_pawn_move_parsing(self):
 		self.chess_rules.action = common.WHITE

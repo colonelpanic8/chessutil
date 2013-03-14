@@ -39,6 +39,12 @@ class BasePlayableChessGameTestCase(T.TestCase):
 			piece=piece
 		)
 
+	def check_move_info(self, algebraic_move, *args):
+		T.assert_equal(
+			self.notation_processor.parse_algebraic_move(algebraic_move),
+			common.MoveInfo(*args)
+		)
+
 
 class ClearedBoardPlayableChessGameTestCase(BasePlayableChessGameTestCase):
 

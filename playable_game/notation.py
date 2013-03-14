@@ -1,5 +1,6 @@
 from . import common
 from . import board
+from . import rules
 
 
 class ChessNotationProcessor(object):
@@ -9,6 +10,21 @@ class ChessNotationProcessor(object):
 			chess_board = board.BasicChessBoard()
 		self._board = chess_board
 		self._rules = rules.ChessRules(self._board)
+
+	def parse_uci_move(self, move):
+		promotion = None
+		if len(move) == 5:
+			promotion = move[-1].upper()
+			move = move[:-1]
+		assert len(move) == 4
+		return self.make_move_info_from_square_names(move[:2], move[2:], promotion)
+
+	def parse_square_names_move(self, source, dest, promotion=None):
+		return common.PromotionMoveInfo(
+			self.square_name_to_indices(source),
+			self.square_name_to_indices(dest),
+			promotion=promotion
+		)
 
 	def parse_algebraic_move(self, algebraic_move):
 		algebraic_move = algebraic_move.strip(' \n+#!?')
@@ -74,14 +90,37 @@ class ChessNotationProcessor(object):
 
 		destination = self.square_name_to_indices(algebraic_move[-2:])
 		disambiguation = algebraic_move[:-2]
+		double_move_rank = 3 if self._rules.action is common.WHITE else 4
 		if disambiguation:
 			source = (destination[0] - self._rules.action, self.file_to_index(disambiguation[0]))
-		elif destination[0] == 3 and not self._board.get_piece(2, destination[1]):
-			source = (1, destination[1])
+		elif destination[0] == double_move_rank and not self._board.get_piece(
+			destination[0] - self._rules.action,
+			destination[1]
+		):
+			source = (destination[0] - 2 * self._rules.action, destination[1])
 		else:
 			source = (destination[0] - self._rules.action, destination[1])
 
 		return common.PromotionMoveInfo(source, destination, promotion)
+
+	@classmethod
+	def index_to_file(cls, index):
+		return chr(index + 97)
+
+	@classmethod
+	def index_to_rank(cls, index):
+		return str(index + 1)
+
+	@classmethod
+	def index_tuple_to_file_rank_string(cls, rank_index, file_index):
+		return cls.index_to_file(file_index) + cls.index_to_rank(rank_index)
+
+	@classmethod
+	def move_info_to_uci(cls, move_info):
+		source = cls.index_tuple_to_file_rank_string(*move_info.source)
+		destination = cls.index_tuple_to_file_rank_string(*move_info.destination)
+		promotion = move_info.promotion if move_info.promotion else ''
+		return "{0}{1}{2}".format(source, destination, promotion)
 
 	@classmethod
 	def file_to_index(cls, file_char):
