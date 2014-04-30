@@ -19,7 +19,7 @@ class DirectionalIterator(object):
         self.rank_index += self.rank_direction
         self.file_index += self.file_direction
         try:
-            return common.Position.from_rank_file(self.rank_index,
+            return Position.from_rank_file(self.rank_index,
                                                   self.file_index)
         except common.IllegalPositionError:
             raise StopIteration()
@@ -71,7 +71,6 @@ class Piece(object):
     is_empty = False
 
     @classmethod
-    @common.listify
     @Position.provide_position
     def move_iterators(cls, position, invert_direction=False):
         for rank_direction, file_direction in cls.directions:
@@ -93,9 +92,9 @@ class Piece(object):
     move_prefix = name
 
     @classmethod
-    def find(self, destination_position, chess_board, color=None, source_rank=None,
+    def find(cls, destination_position, chess_board, color=None, source_rank=None,
              source_file=None, find_all=False):
-        finder = self.piece_finder_class(chess_board, type(self), color, find_all)
+        finder = cls.piece_finder_class(chess_board, cls, color, find_all)
         return finder.find(destination_position, source_rank, source_file)
 
     @Position.provide_position
@@ -109,12 +108,10 @@ class Piece(object):
         for move_iterator in self.move_iterators(position):
             for test_position in move_iterator:
                 piece = chess_board[test_position]
-                if piece.color == common.color.NONE:
-                    yield test_position
-                elif piece.color == self.color:
+                if piece.color == self.color:
                     break
-                else:
-                    yield test_position
+                yield test_position
+                if piece.color == self.color.opponent:
                     break
 
     def _get_special_threatened_moves(self, position, chess_board):
@@ -126,7 +123,7 @@ class Piece(object):
     def build_disambiguation(self, chess_board, move):
         piece_in_same_rank = False
         piece_in_same_file = False
-        found_positions = self.find(move.destination,
+        found_positions = self.find(move.destination, chess_board,
                                     color=self.color, find_all=True)
 
         if len(found_positions) < 2:
@@ -146,6 +143,9 @@ class Piece(object):
             return common.index_to_file(move.source.file_index)
 
         return common.index_to_rank(move.source.rank_index)
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.color == other.color
 
 
 class PieceFinder(object):
@@ -178,7 +178,7 @@ class NormalPieceFinder(PieceFinder):
             except common.IllegalPositionError:
                 return None
 
-            if self.chess_board[test_position].is_of_color(self.color):
+            if self.chess_board[test_position].color == self.color:
                 return test_position
 
         if self.find_all:
@@ -206,7 +206,7 @@ class NormalPiece(Piece):
     piece_finder_class = NormalPieceFinder
 
 
-class SlidingPieceFinder(object):
+class SlidingPieceFinder(PieceFinder):
 
     @Position.provide_position
     def find(self, destination_position, source_rank=None, source_file=None):
@@ -237,18 +237,18 @@ class SlidingPieceFinder(object):
                 return [position]
         return []
 
-    def _can_use_find_simple(destination_position, source_rank, source_file):
+    def _can_use_find_simple(self, destination_position, source_rank, source_file):
         return (
             source_rank is not None and
-            source_rank != destination_position.rank
+            source_rank != destination_position.rank_index
         ) or (
             source_file is not None and
-            source_file != destination_position.file
+            source_file != destination_position.file_index
         )
 
     def _find_using_move_iterator(self, move_iterator):
         for position in move_iterator:
-            piece = self.chess_board.get(position)
+            piece = self.chess_board[position]
             if piece.color == self.color:
                 return position
             elif piece.color != common.color.NONE:
@@ -321,17 +321,17 @@ class King(NormalPiece):
     def back_rank(self):
         return _back_rank_squares[self.color]
 
-    def _get_special_threatened_moves(self, position, chess_board):
-        if self.position.rank_index != self.back_rank:
+    def _get_special_threatened_moves(self, position, chess_rules):
+        if position.rank_index != self.back_rank:
             raise StopIteration()
-        if chess_board.can_castle_kingside(self.color) and all(
-            chess_board[position.replace(file_index=file_index)].is_empty
+        if chess_rules.can_castle_kingside(self.color) and all(
+            chess_rules[position.replace(file_index=file_index)].is_empty
             for file_index in range(5, 7)
         ):
              yield position.replace(file_index=6)
 
-        if chess_board.can_castle_queenside(self.color) and all(
-            chess_board[position.replace(file_index=file_index)].is_empty
+        if chess_rules.can_castle_queenside(self.color) and all(
+            chess_rules[position.replace(file_index=file_index)].is_empty
             for file_index in range(1, 4)
         ):
             yield position.replace(file_index=2)
@@ -378,23 +378,28 @@ class Pawn(Piece):
     def move_iterators(*args, **kwargs):
         return []
 
-    @common.listify
     @Position.provide_position
     def _get_special_threatened_moves(self, position, chess_board):
         new_rank_index = position.rank_index + self.color
         for new_file_index in (-1 + position.file_index, 1 + position.file_index):
-            new_position = common.Position(new_rank_index, new_file_index)
+            try:
+                new_position = Position.from_rank_file(new_rank_index, new_file_index)
+            except common.IllegalPositionError:
+                continue
             if (chess_board[new_position].color == self.color * -1 or
                 self.is_enpassant_available(position, new_position, chess_board)):
                 yield new_position
         new_position = position.replace(new_rank_index)
-        if chess_board[new_position].color == common.color.NONE:
+        if chess_board[new_position].is_empty:
             yield new_position
+        else:
+            # Break here because we can't do the double pawn move either.
+            raise StopIteration()
 
         # Check for double pawn move.
         if position.rank_index == _back_rank_squares[self.color] + self.color:
-            new_position = position.replace(self.color * 2)
-            if chess_board[new_position].color == common.color.NONE:
+            new_position = position.delta(self.color * 2)
+            if chess_board[new_position].is_empty:
                 yield new_position
 
     @property
@@ -405,18 +410,19 @@ class Pawn(Piece):
         if position.rank_index != self.enpassant_square:
             return False
 
-        last_move = chess_board.moves[-1]
-        if not last_move:
+        if chess_board.moves:
+            last_move = chess_board.moves[-1]
+        else:
             return False
 
         return (type(last_move.piece) == type(self) and
-                last_move.source_file == new_position.file_index and
-                last_move.source_rank == new_position.rank_index + self.color and
-                last_move.dest_rank == new_position.rank_index - self.color)
+                last_move.source.file_index == new_position.file_index and
+                last_move.source.rank_index == new_position.rank_index + self.color and
+                last_move.destination.rank_index == new_position.rank_index - self.color)
 
     def build_disambiguation(self, chess_board, move):
-        return "" if move.source_file == move.dest_file else \
-            common.file_index_to_file_letter(move.source_file)
+        return "" if move.source.file_index == move.destination.file_index else \
+            common.index_to_file(move.source.file_index)
 
 
 class Empty(object):
@@ -428,6 +434,9 @@ class Empty(object):
 
     is_empty = True
     color = common.color.NONE
+
+    def get_all_threatened_moves(self, *args):
+        return None
 
 
 _back_rank_classes = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]

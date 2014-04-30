@@ -28,26 +28,27 @@ def listify(function):
     @functools.wraps(function)
     def wrapped(*args, **kwargs):
         return list(function(*args, **kwargs))
+    return wrapped
 
 
-def index_to_file(cls, index):
+def index_to_file(index):
     return chr(index + 97)
 
 
-def index_to_rank(cls, index):
+def index_to_rank(index):
     return str(index + 1)
 
 
-def file_to_index(cls, file_char):
+def file_to_index(file_char):
     assert 'a' <= file_char <= 'h'
     return ord(file_char) - 97
 
 
-def rank_to_index(cls, rank):
+def rank_to_index(rank):
     assert 0 < int(rank) <= 8
     return int(rank) - 1
 
 
-def square_name_to_indices(cls, square_name):
+def square_name_to_indices(square_name):
     file_char, rank_char = square_name
-    return cls.rank_to_index(int(rank_char)), cls.file_to_index(file_char)
+    return rank_to_index(int(rank_char)), file_to_index(file_char)

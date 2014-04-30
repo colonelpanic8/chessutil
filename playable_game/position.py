@@ -74,10 +74,10 @@ class Position(object):
         if file_delta is None:
             file_delta = 0
 
-        return self.from_rank_file(self.rank + rank_delta, self.file + file_delta)
+        return self.from_rank_file(self.rank_index + rank_delta, self.file_index + file_delta)
 
     def __repr__(self):
-        return 'Position.from_rank_file({0}, {1})'.format(self.rank, self.file)
+        return 'Position({0})'.format(self.algebraic)
 
     def __hash__(self):
         return hash(self.index)

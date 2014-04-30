@@ -1,20 +1,41 @@
 from __future__ import absolute_import
 
-from . import common
+from .position import Position
 from .pieces import Piece
+
 
 
 class Move(object):
 
-    @common.Position.src_dst_provide_position
-    def __init__(self, source, destination, chess_board, promotion=None):
+    finalized_attributes = ('piece', 'taken_piece', 'disambiguation', 'delivers_check')
+
+    @Position.src_dst_provide_position
+    def __init__(self, source, destination, chess_rules, promotion=None):
         self.source = source
         self.destination = destination
         self.promotion = Piece.get_promotion_class(promotion)
-        self.piece = chess_board[source]
-        self.taken_piece = chess_board[destination]
-        self.disambiguation = self.piece.build_disambiguation(chess_board, self)
-        self.delivers_check = chess_board.move_checks(self)
+        self.chess_rules = chess_rules
+
+    def finalize(self):
+        for attribute in self.finalized_attributes:
+            self.__dict__[attribute] = getattr(self, attribute)
+        self.__class__ = FinalizedMove
+
+    @property
+    def piece(self):
+        return self.chess_rules[self.source]
+
+    @property
+    def taken_piece(self):
+        return self.chess_rules[self.destination]
+
+    @property
+    def disambiguation(self):
+        return self.piece.build_disambiguation(self.chess_rules, self)
+
+    @property
+    def delivers_check(self):
+        return self.chess_rules.move_checks(self)
 
     @property
     def uci(self):
@@ -30,6 +51,12 @@ class Move(object):
         return '+' if self.delivers_check else ''
 
     @property
+    def promotion_string(self):
+        return '' if self.promotion is None else '={0}'.format(
+            self.promotion.character
+        )
+
+    @property
     def algebraic(self):
         if self.is_kingside_castle:
             return 'O-O'
@@ -42,10 +69,18 @@ class Move(object):
     @property
     def is_kingside_castle(self):
         if self.piece.character == 'k' and self.source.file_index == 4:
-            if self.dest.file_index == 6:
+            if self.destination.file_index == 6:
                 return 'O-O'
     @property
     def is_queenside_castle(self):
         if self.piece.character == 'k' and self.source.file_index == 4:
-            if self.dest.file_index == 2:
+            if self.destination.file_index == 2:
                 return 'O-O-O'
+
+    def __repr__(self):
+        return "Move({0})".format(self.algebraic)
+
+
+class FinalizedMove(Move):
+
+    piece = taken_piece = disambiguation = delivers_check = None

@@ -50,6 +50,9 @@ class ChessBoard(object):
     def __getitem__(self, position):
         return self.get_piece(position)
 
+    def move_checks(self, *args):
+        return False
+
 
 class BasicChessBoard(ChessBoard):
 
