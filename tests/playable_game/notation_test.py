@@ -11,7 +11,7 @@ class ChessNotationProcessorTest(BasePlayableChessGameTestCase):
 class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCase):
 
 	def test_pawn_move_parsing(self):
-		self.chess_rules.action = common.WHITE
+		self.chess_rules.action = common.color.WHITE
 		self.set_piece('f7', 'P')
 		self.set_piece('e6', 'p')
 		self.check_move_info('exf7+', (5, 4), (6, 5))
@@ -27,7 +27,7 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
 		self.check_move_info('exd4', (2, 4), (3, 3))
 
 		# Check that the selected pawn is affected by the current action.
-		self.chess_rules.action = common.BLACK
+		self.chess_rules.action = common.color.BLACK
 		self.set_piece('e5', 'P')
 		self.check_move_info('e4', (4, 4), (3, 4))
 		self.check_move_info('exd4', (4, 4), (3, 3))
@@ -43,7 +43,7 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
 			common.PromotionMoveInfo((6, 0), (7, 0), 'R')
 		)
 
-		self.chess_rules.action = common.BLACK
+		self.chess_rules.action = common.color.BLACK
 		T.assert_equal(
 			self.notation_processor.parse_algebraic_move('a1=R'),
 			common.PromotionMoveInfo((1, 0), (0, 0), 'R')
@@ -55,11 +55,11 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
 		)
 
 	def test_castling(self):
-		self.chess_rules.action = common.WHITE
+		self.chess_rules.action = common.color.WHITE
 		self.check_move_info('O-O', (0, 4), (0, 6))
 		self.check_move_info('O-O-O', (0, 4), (0, 2))
 
-		self.chess_rules.action = common.BLACK
+		self.chess_rules.action = common.color.BLACK
 		self.check_move_info('O-O', (7, 4), (7, 6))
 		self.check_move_info('O-O-O', (7, 4), (7, 2))
 
@@ -95,11 +95,11 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
 		self.check_move_info('Ngf4', (1, 6), (3, 5))
 		self.set_piece('g2', 'N')
 		self.check_move_info('Nf4', (1, 4), (3, 5))
-		self.chess_rules.action = common.BLACK
+		self.chess_rules.action = common.color.BLACK
 		self.check_move_info('Nf4', (1, 6), (3, 5))
 
 	def test_rook_moves(self):
-		self.chess_rules.action = common.BLACK
+		self.chess_rules.action = common.color.BLACK
 
 		self.set_piece('a4', 'R')
 		self.check_move_info('Re4', (3, 0), (3, 4))
@@ -117,10 +117,10 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
 		self.check_move_info('Q1xe4+', (0, 1), (3, 4))
 
 	def test_king_moves(self):
-		self.chess_rules.action = common.WHITE
+		self.chess_rules.action = common.color.WHITE
 		self.check_move_info('Ke2', (0, 4), (1, 4))
 
-		self.chess_rules.action = common.BLACK
+		self.chess_rules.action = common.color.BLACK
 		self.check_move_info('Ke7', (7, 4), (6, 4))
 
 

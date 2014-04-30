@@ -3,8 +3,9 @@ import itertools
 import math
 
 from . import common
+from .position import Position
 
-provide_position = common.Position.provide_position
+provide_position = Position.provide_position
 
 
 class DirectionalIterator(object):
@@ -63,7 +64,7 @@ class Piece(object):
 
     @property
     def name(self):
-        return self.character.upper() if self.color == common.BLACK \
+        return self.character.upper() if self.color == common.color.BLACK \
             else self.character
 
     def find(self, destination_position, color=None, source_rank=None,
@@ -81,7 +82,7 @@ class Piece(object):
         for move_iterator in self.move_iterators(position):
             for test_position in move_iterator:
                 piece = chess_board[test_position]
-                if piece.color == common.NONE:
+                if piece.color == common.color.NONE:
                     yield test_position
                 elif piece.color == self.color:
                     break
@@ -216,7 +217,7 @@ class SlidingPieceFinder(object):
             piece = self.chess_board.get(position)
             if piece.color == self.color:
                 return position
-            elif piece.color != common.NONE:
+            elif piece.color != common.color.NONE:
                 return None
         else:
             return None
@@ -252,7 +253,7 @@ class SlidingPieceFinder(object):
 
 _diagonals = ((-1, 1), (1, -1), (1, 1), (-1, -1))
 _straights = ((1,  0), (-1, 0), (0, 1), (0,  -1))
-_back_rank_squares = {common.WHITE: 0, common.BLACK: 7}
+_back_rank_squares = {common.color.WHITE: 0, common.color.BLACK: 7}
 
 
 
@@ -304,8 +305,8 @@ class Knight(NormalPiece):
 class Pawn(Piece):
 
     _enpassant_squares = {
-        common.WHITE: 4,
-        common.BLACK: 3
+        common.color.WHITE: 4,
+        common.color.BLACK: 3
     }
 
     @classmethod
@@ -322,13 +323,13 @@ class Pawn(Piece):
                 self.is_enpassant_available(position, new_position, chess_board)):
                 yield new_position
         new_position = position.replace(new_rank_index)
-        if chess_board[new_position].color == common.NONE:
+        if chess_board[new_position].color == common.color.NONE:
             yield new_position
 
         # Check for double pawn move.
         if position.rank_index == _back_rank_squares[self.color] + self.color:
             new_position = position.replace(self.color * 2)
-            if chess_board[new_position].color == common.NONE:
+            if chess_board[new_position].color == common.color.NONE:
                 yield new_position
 
     @property
@@ -351,3 +352,9 @@ class Pawn(Piece):
     def build_disambiguation(self, chess_board, move):
         return "" if move.source_file == move.dest_file else \
             common.file_index_to_file_letter(move.source_file)
+
+
+class Empty(object):
+
+    is_empty = True
+    color = common.color.NONE

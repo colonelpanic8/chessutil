@@ -35,13 +35,13 @@ class ChessNotationProcessor(object):
 		algebraic_move = algebraic_move.strip(' \n+#!?')
 		# Handle Castling
 		if algebraic_move == "O-O":
-			if self._rules.action == common.WHITE:
+			if self._rules.action == common.color.WHITE:
 				return common.MoveInfo((0, 4), (0, 6))
 			else:
 				return common.MoveInfo((7, 4), (7, 6))
 
 		if algebraic_move == "O-O-O":
-			if self._rules.action == common.WHITE:
+			if self._rules.action == common.color.WHITE:
 				return common.MoveInfo((0, 4), (0, 2))
 			else:
 				return common.MoveInfo((7, 4), (7, 2))
@@ -72,7 +72,7 @@ class ChessNotationProcessor(object):
 					else:
 						source_rank = self.rank_to_index(value)
 
-		if self._rules.action == common.WHITE:
+		if self._rules.action == common.color.WHITE:
 			piece_type = piece_type.lower()
 		source = self._rules.find_piece(
 			piece_type,
@@ -95,7 +95,7 @@ class ChessNotationProcessor(object):
 
 		destination = self.square_name_to_indices(algebraic_move[-2:])
 		disambiguation = algebraic_move[:-2]
-		double_move_rank = 3 if self._rules.action is common.WHITE else 4
+		double_move_rank = 3 if self._rules.action is common.color.WHITE else 4
 		if disambiguation:
 			source = (destination[0] - self._rules.action, self.file_to_index(disambiguation[0]))
 		elif destination[0] == double_move_rank and not self._board.get_piece(

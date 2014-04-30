@@ -9,14 +9,14 @@ class ClearBoardChessRulesTestCase(ClearedBoardPlayableChessGameTestCase):
 	def test_en_passant(self):
 		self.chess_board[6][0] = 'P'
 		self.chess_board[4][1] = 'p'
-		self.chess_rules.action = common.BLACK
+		self.chess_rules.action = common.color.BLACK
 		self.make_legal_moves([((6, 0), (4, 0)), ((4, 1), (5, 0))])
 		T.assert_equal(self.chess_board.is_empty_square(4, 0), True)
 		T.assert_equal(self.chess_board[5][0], 'p')
 
 		self.chess_board[1][6] = 'p'
 		self.chess_board[3][7] = 'P'
-		self.chess_rules.action = common.WHITE
+		self.chess_rules.action = common.color.WHITE
 		self.make_legal_moves([((1, 6), (3, 6)), ((3, 7), (2, 6))])
 		T.assert_equal(self.chess_board.is_empty_square(3, 6), True)
 		T.assert_equal(self.chess_board[2][6], 'P')
