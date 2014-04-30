@@ -5,6 +5,11 @@ from . import rules
 
 class ChessNotationProcessor(object):
 
+    # def build_disambiguation(self, chess_board, move):
+    #     found_positions = cls.find(move.destination, color=self.color, find_all=True)
+    #     if len(found_positions) < 2:
+    #         return ''
+
 	def __init__(self, chess_board=None):
 		if chess_board == None:
 			chess_board = board.BasicChessBoard()

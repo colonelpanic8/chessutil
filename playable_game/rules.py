@@ -5,38 +5,7 @@ from . import board
 from . import common
 
 
-class ChessRulesFunctionRegistrar(type):
-
-	piece_to_threatened_function_map = {}
-	piece_to_find_function_map = {}
-
-	def __init__(self, *args, **kwargs):
-		self._piece_to_threatened_function_map = self.piece_to_threatened_function_map
-		self._piece_to_find_function_map = self.piece_to_find_function_map
-		super(ChessRulesFunctionRegistrar, self).__init__(*args, **kwargs)
-
-	@classmethod
-	def register_threatened_move_function(cls, function, piece):
-		cls.piece_to_threatened_function_map[piece] = function
-		return function
-
-	@classmethod
-	def register_threatened_for_piece(cls, piece):
-		return functools.partial(cls.register_threatened_move_function, piece=piece)
-
-	@classmethod
-	def register_find_piece_function(cls, function, piece):
-		cls.piece_to_find_function_map[piece] = function
-		return function
-
-	@classmethod
-	def register_find_for_piece(cls, piece):
-		return functools.partial(cls.register_find_piece_function, piece=piece)
-
-
-class ChessRules(object):
-
-	__metaclass__ = ChessRulesFunctionRegistrar
+class ChessBoardWithRules(object):
 
 	def __init__(self, board=None):
 		if board == None:
@@ -44,10 +13,11 @@ class ChessRules(object):
 		self._board = board
 		self.action = common.WHITE
 		self.moves = []
-		self._white_can_castle_kingside = True
-		self._black_can_castle_kingside = True
-		self._white_can_castle_queenside = True
-		self._black_can_castle_queenside = True
+        self.king_side_castling = {
+            common.WHITE: True,
+            common.BLACK: True
+        }
+        self.queen_side_castling = self.king_side_castling.copy()
 
 	def get_legal_moves(self, rank_index, file_index):
 		if self._board.get_piece_color_on_square(rank_index, file_index) != self.action:
@@ -197,7 +167,7 @@ class ChessRules(object):
 
 		return king_safe_moves
 
-	_diagonals = [(-1, 1), (1, -1), (1, 1), (-1, -1)]
+    _diagonals = [(-1, 1), (1, -1), (1, 1), (-1, -1)]
 	_straights = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 	_knight_deltas = [(1, 2), (2, 1), (-1, 2), (-2, 1), (1, -2), (2, -1), (-1, -2), (-2, -1)]
 
