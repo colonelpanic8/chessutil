@@ -1,32 +1,19 @@
+from __future__ import absolute_import
 import functools
-from collections import namedtuple
+
+
+class Color(int):
+
+    @property
+    def opponent(self):
+        return Color(self * -1)
+
 
 class color(object):
-    WHITE = 1
-    NONE = 0
-    BLACK = -1
 
-
-class IllegalPositionError(Exception): pass
-
-
-_bool_or_none_to_color_map = {
-    True: color.WHITE,
-    False: color.BLACK,
-    None: color.NONE
-}
-
-
-PromotionMoveInfo = namedtuple('MoveInfo', ['source', 'destination', 'promotion'])
-MoveInfo = functools.partial(PromotionMoveInfo, promotion=None)
-
-
-def make_eight(item):
-    return [item for _ in range(8)]
-
-
-def opponent_of(color):
-    return color * -1
+    WHITE = Color(1)
+    NONE = Color(0)
+    BLACK = Color(-1)
 
 
 class ActiveColorError(Exception): pass
@@ -34,9 +21,33 @@ class IllegalMoveError(Exception): pass
 class IllegalSquareError(Exception): pass
 class InvalidNotationError(Exception): pass
 class PieceNotFoundError(Exception): pass
+class IllegalPositionError(Exception): pass
 
 
 def listify(function):
     @functools.wraps(function)
     def wrapped(*args, **kwargs):
         return list(function(*args, **kwargs))
+
+
+def index_to_file(cls, index):
+    return chr(index + 97)
+
+
+def index_to_rank(cls, index):
+    return str(index + 1)
+
+
+def file_to_index(cls, file_char):
+    assert 'a' <= file_char <= 'h'
+    return ord(file_char) - 97
+
+
+def rank_to_index(cls, rank):
+    assert 0 < int(rank) <= 8
+    return int(rank) - 1
+
+
+def square_name_to_indices(cls, square_name):
+    file_char, rank_char = square_name
+    return cls.rank_to_index(int(rank_char)), cls.file_to_index(file_char)

@@ -5,12 +5,10 @@ import math
 from . import common
 from .position import Position
 
-provide_position = Position.provide_position
-
 
 class DirectionalIterator(object):
 
-    @provide_position
+    @Position.provide_position
     def __init__(self, position, rank_direction, file_direction):
           self.rank_index = position.rank_index
           self.file_index = position.file_index
@@ -21,7 +19,8 @@ class DirectionalIterator(object):
         self.rank_index += self.rank_direction
         self.file_index += self.file_direction
         try:
-            return common.Position.from_rank_file(self.rank_index, self.file_index)
+            return common.Position.from_rank_file(self.rank_index,
+                                                  self.file_index)
         except common.IllegalPositionError:
             raise StopIteration()
 
@@ -42,36 +41,64 @@ class OneSquareIterator(DirectionalIterator):
 
 class Piece(object):
 
+    class __metaclass__(type):
+
+        character_to_piece_class = {}
+
+        def __init__(cls, *args):
+            type.__init__(cls, *args)
+            if cls.character is not None:
+                cls.character_to_piece_class[cls.character.lower()] = cls
+
+        @classmethod
+        def get_piece_class(cls, piece_char_or_class):
+            if isinstance(piece_char_or_class, str):
+                return cls.character_to_piece_class[piece_char_or_class.lower()]
+            return piece_char_or_class
+
+        @classmethod
+        def get_promotion_class(cls, incoming):
+            if incoming is None:
+                return None
+            piece_class = cls.get_piece_class(incoming)
+            assert piece_class not in (King, Pawn)
+            return piece_class
+
     character = None
     directions = None
-    is_empty = False
     move_iterator_class = None
+    piece_finder_class = None
+    is_empty = False
 
     @classmethod
     @common.listify
-    @provide_position
+    @Position.provide_position
     def move_iterators(cls, position, invert_direction=False):
         for rank_direction, file_direction in cls.directions:
             if invert_direction:
                 rank_direction *= -1
                 file_direction *= -1
-            yield cls.move_iterator_class(position, rank_direction, file_direction)
+            yield cls.move_iterator_class(position, rank_direction,
+                                          file_direction)
 
 
-    def __init__(self, color, chess_board):
+    def __init__(self, color):
         self.color = color
-        self.chess_board = chess_board
 
     @property
     def name(self):
         return self.character.upper() if self.color == common.color.BLACK \
-            else self.character
+            else self.character.lower()
 
-    def find(self, destination_position, color=None, source_rank=None,
+    move_prefix = name
+
+    @classmethod
+    def find(self, destination_position, chess_board, color=None, source_rank=None,
              source_file=None, find_all=False):
-        raise NotImplementedError()
+        finder = self.piece_finder_class(chess_board, type(self), color, find_all)
+        return finder.find(destination_position, source_rank, source_file)
 
-    @provide_position
+    @Position.provide_position
     def get_all_threatened_moves(self, position, chess_board):
         return itertools.chain(self._get_normal_threatened_moves(position,
                                                                  chess_board),
@@ -93,6 +120,33 @@ class Piece(object):
     def _get_special_threatened_moves(self, position, chess_board):
         return []
 
+    def __str__(self):
+        return self.name
+
+    def build_disambiguation(self, chess_board, move):
+        piece_in_same_rank = False
+        piece_in_same_file = False
+        found_positions = self.find(move.destination,
+                                    color=self.color, find_all=True)
+
+        if len(found_positions) < 2:
+            return ''
+
+        for position in found_positions:
+            if position == move.source: continue
+            if position.rank_index == move.source.rank_index:
+                piece_in_same_rank = True
+            if position.file_index == move.source.file_index:
+                piece_in_same_file = True
+
+        if piece_in_same_rank and piece_in_same_file:
+            return move.source.algebraic
+
+        if not piece_in_same_file:
+            return common.index_to_file(move.source.file_index)
+
+        return common.index_to_rank(move.source.rank_index)
+
 
 class PieceFinder(object):
 
@@ -103,14 +157,9 @@ class PieceFinder(object):
         self.find_all = find_all
 
 
-class NormalPiece(object):
+class NormalPieceFinder(PieceFinder):
 
-    move_iterator_class = OneSquareIterator
-
-
-class NormalPieceFinder(object):
-
-    @provide_position
+    @Position.provide_position
     def find(self, destination_position, source_rank=None, source_file=None):
         rank_delta = None if source_rank is None else \
                      source_rank - destination_position.rank
@@ -151,30 +200,15 @@ class NormalPieceFinder(object):
                 return position
 
 
-class SlidingPiece(object):
+class NormalPiece(Piece):
 
-    move_iterator_class = DirectionalIterator
-
-    @classmethod
-    @provide_position
-    def move_iterators_matching(cls, destination_position,
-                                source_rank=None, source_file=None):
-        move_iterators = cls.move_iterators(destination_position)
-        if source_rank is not None:
-            move_iterators = [move_iterator
-                              for move_iterator in move_iterators
-                              if move_iterator.rank_direction == 0]
-
-        if source_file is not None:
-            move_iterators = [move_iterator
-                              for move_iterator in move_iterators
-                              if move_iterator.file_direction == 0]
-        return move_iterators
+    move_iterator_class = OneSquareIterator
+    piece_finder_class = NormalPieceFinder
 
 
 class SlidingPieceFinder(object):
 
-    @provide_position
+    @Position.provide_position
     def find(self, destination_position, source_rank=None, source_file=None):
         if self._can_use_find_simple(destination_position,
                                      source_rank, source_file):
@@ -251,14 +285,36 @@ class SlidingPieceFinder(object):
                 return position
 
 
+class SlidingPiece(Piece):
+
+    move_iterator_class = DirectionalIterator
+    piece_finder_class = SlidingPieceFinder
+
+    @classmethod
+    @Position.provide_position
+    def move_iterators_matching(cls, destination_position,
+                                source_rank=None, source_file=None):
+        move_iterators = cls.move_iterators(destination_position)
+        if source_rank is not None:
+            move_iterators = [move_iterator
+                              for move_iterator in move_iterators
+                              if move_iterator.rank_direction == 0]
+
+        if source_file is not None:
+            move_iterators = [move_iterator
+                              for move_iterator in move_iterators
+                              if move_iterator.file_direction == 0]
+        return move_iterators
+
+
 _diagonals = ((-1, 1), (1, -1), (1, 1), (-1, -1))
 _straights = ((1,  0), (-1, 0), (0, 1), (0,  -1))
 _back_rank_squares = {common.color.WHITE: 0, common.color.BLACK: 7}
 
 
-
 class King(NormalPiece):
 
+    character = 'k'
     directions = _diagonals + _straights
 
     @property
@@ -280,30 +336,39 @@ class King(NormalPiece):
         ):
             yield position.replace(file_index=2)
 
+    def build_disambiguation(self, *args):
+        return ''
+
 
 class Queen(SlidingPiece):
 
+    character = 'q'
     directions = _diagonals + _straights
 
 
 class Rook(SlidingPiece):
 
+    character = 'r'
     directions = _straights
 
 
 class Bishop(SlidingPiece):
 
+    character = 'b'
     directions = _diagonals
 
 
 class Knight(NormalPiece):
 
+    character = 'n'
     directions = [(1,  2), (2,  1), (-1,  2), (-2,  1),
                   (1, -2), (2, -1), (-1, -2), (-2, -1)]
 
 
 class Pawn(Piece):
 
+    move_prefix = ''
+    character = 'p'
     _enpassant_squares = {
         common.color.WHITE: 4,
         common.color.BLACK: 3
@@ -314,7 +379,7 @@ class Pawn(Piece):
         return []
 
     @common.listify
-    @provide_position
+    @Position.provide_position
     def _get_special_threatened_moves(self, position, chess_board):
         new_rank_index = position.rank_index + self.color
         for new_file_index in (-1 + position.file_index, 1 + position.file_index):
@@ -356,5 +421,21 @@ class Pawn(Piece):
 
 class Empty(object):
 
+    class __metaclass__(type):
+
+        def __str__(cls):
+            return "."
+
     is_empty = True
     color = common.color.NONE
+
+
+_back_rank_classes = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
+
+
+def build_back_rank(color):
+    return map(lambda piece_class: piece_class(color), _back_rank_classes)
+
+
+def build_pawn_rank(color):
+    return [Pawn(color) for _ in range(8)]

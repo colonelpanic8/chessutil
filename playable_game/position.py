@@ -1,4 +1,7 @@
+from __future__ import absolute_import
 import functools
+
+from . import common
 
 
 class Position(object):
@@ -9,6 +12,8 @@ class Position(object):
     def make(cls, incoming):
         if isinstance(incoming, cls):
             return incoming
+        if isinstance(incoming, basestring):
+            return cls.from_rank_file(*common.square_name_to_indices(incoming))
         try:
             rank_index, file_index = incoming
         except:
@@ -21,7 +26,8 @@ class Position(object):
     def src_dst_provide_position(cls, function):
         @functools.wraps(function)
         def wrapped(self, incoming_src, incoming_dst, *args, **kwargs):
-            return function(self, cls.make(incoming_src), cls.make(incoming_dst), *args, **kwargs)
+            return function(self, cls.make(incoming_src),
+                            cls.make(incoming_dst), *args, **kwargs)
         return wrapped
 
 
@@ -35,8 +41,8 @@ class Position(object):
     @classmethod
     def from_rank_file(cls, rank_index, file_index):
         if rank_index < 0 or rank_index > 7 or file_index < 0 or file_index > 7:
-            raise IllegalPositionError()
-        cls(rank_index * 8 + file_index)
+            raise common.IllegalPositionError()
+        return cls(rank_index * 8 + file_index)
 
     def __init__(self, index):
         self.index = index
@@ -48,6 +54,11 @@ class Position(object):
     @property
     def file_index(self):
         return self.index & 7
+
+    @property
+    def algebraic(self):
+        return (common.index_to_file(self.file_index) +
+                common.index_to_rank(self.rank_index))
 
     def replace(self, rank_index=None, file_index=None):
         if rank_index is None:
@@ -67,3 +78,9 @@ class Position(object):
 
     def __repr__(self):
         return 'Position.from_rank_file({0}, {1})'.format(self.rank, self.file)
+
+    def __hash__(self):
+        return hash(self.index)
+
+    def __eq__(self, other):
+        return self.index == other.index

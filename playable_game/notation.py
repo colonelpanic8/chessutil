@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from . import common
 from . import board
 from . import rules
@@ -107,37 +109,3 @@ class ChessNotationProcessor(object):
 			source = (destination[0] - self._rules.action, destination[1])
 
 		return common.PromotionMoveInfo(source, destination, promotion)
-
-	@classmethod
-	def index_to_file(cls, index):
-		return chr(index + 97)
-
-	@classmethod
-	def index_to_rank(cls, index):
-		return str(index + 1)
-
-	@classmethod
-	def index_tuple_to_file_rank_string(cls, rank_index, file_index):
-		return cls.index_to_file(file_index) + cls.index_to_rank(rank_index)
-
-	@classmethod
-	def move_info_to_uci(cls, move_info):
-		source = cls.index_tuple_to_file_rank_string(*move_info.source)
-		destination = cls.index_tuple_to_file_rank_string(*move_info.destination)
-		promotion = move_info.promotion if move_info.promotion else ''
-		return "{0}{1}{2}".format(source, destination, promotion)
-
-	@classmethod
-	def file_to_index(cls, file_char):
-		assert 'a' <= file_char <= 'h'
-		return ord(file_char) - 97
-
-	@classmethod
-	def rank_to_index(cls, rank):
-		assert 0 < int(rank) <= 8
-		return int(rank) - 1
-
-	@classmethod
-	def square_name_to_indices(cls, square_name):
-		file_char, rank_char = square_name
-		return cls.rank_to_index(int(rank_char)), cls.file_to_index(file_char)
