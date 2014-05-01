@@ -22,6 +22,7 @@ class IllegalSquareError(Exception): pass
 class InvalidNotationError(Exception): pass
 class PieceNotFoundError(Exception): pass
 class IllegalPositionError(Exception): pass
+class AmbiguousAlgebraicMoveError(Exception): pass
 
 
 def listify(function):

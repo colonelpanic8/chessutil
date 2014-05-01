@@ -17,6 +17,7 @@ class Position(object):
         try:
             rank_index, file_index = incoming
         except:
+            assert isinstance(incoming, int)
             return cls(incoming)
         else:
             return cls.from_rank_file(rank_index, file_index)
@@ -74,7 +75,8 @@ class Position(object):
         if file_delta is None:
             file_delta = 0
 
-        return self.from_rank_file(self.rank_index + rank_delta, self.file_index + file_delta)
+        return self.from_rank_file(self.rank_index + rank_delta,
+                                   self.file_index + file_delta)
 
     def __repr__(self):
         return 'Position({0})'.format(self.algebraic)

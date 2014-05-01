@@ -89,7 +89,9 @@ class Piece(object):
         return self.character.upper() if self.color == common.color.BLACK \
             else self.character.lower()
 
-    move_prefix = name
+    @property
+    def move_prefix(self):
+        return self.name.upper()
 
     @classmethod
     def find(cls, destination_position, chess_board, color=None, source_rank=None,
@@ -162,9 +164,9 @@ class NormalPieceFinder(PieceFinder):
     @Position.provide_position
     def find(self, destination_position, source_rank=None, source_file=None):
         rank_delta = None if source_rank is None else \
-                     source_rank - destination_position.rank
+                     source_rank - destination_position.rank_index
         file_delta = None if source_file is None else \
-                     source_file - destination_position.file
+                     source_file - destination_position.file_index
 
         def direction_matches(rank_direction, file_direction):
             if rank_delta is not None and rank_direction != rank_delta:
@@ -249,40 +251,43 @@ class SlidingPieceFinder(PieceFinder):
     def _find_using_move_iterator(self, move_iterator):
         for position in move_iterator:
             piece = self.chess_board[position]
-            if piece.color == self.color:
+            if self._piece_matches(piece):
                 return position
             elif piece.color != common.color.NONE:
                 return None
         else:
             return None
 
+    def _piece_matches(self, piece):
+        return piece.color == self.color and type(piece) == self.piece_class
+
     def _find_simple(self, destination_position, source_rank, source_file):
         assert not (source_rank is None and source_file is None)
         rank_delta = None if source_rank is None else \
-                     source_rank - destination_position.rank
+                     source_rank - destination_position.rank_index
         file_delta = None if source_file is None else \
-                     source_file - destination_position.file
+                     source_file - destination_position.file_index
 
-        directions = self.peice_class.directions
+        directions = self.piece_class.directions
 
         if rank_delta is not None:
             directions = [direction for direction in directions
-                          if math.copysign(rank_delta, direction) == rank_delta]
+                          if math.copysign(rank_delta, direction[0]) == rank_delta]
             magnitude = abs(rank_delta);
 
         if file_delta is not None:
             directions = [direction for direction in directions
-                          if math.copysign(file_delta, direction) == file_delta]
+                          if math.copysign(file_delta, direction[1]) == file_delta]
             magnitude = abs(file_delta);
 
-        for rank_direction, file_direction in self.directions:
+        for rank_direction, file_direction in self.piece_class.directions:
             try:
                 position = destination_position.delta(rank_direction * magnitude,
                                                       file_direction * magnitude)
-            except common.IllegalSquareError():
+            except common.IllegalPositionError:
                 pass
-            if self.chess_board[position].color == self.color:
-                return position
+            if self._piece_matches(self.chess_board[position]):
+                return [position]
 
 
 class SlidingPiece(Piece):

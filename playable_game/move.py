@@ -68,17 +68,24 @@ class Move(object):
 
     @property
     def is_kingside_castle(self):
-        if self.piece.character == 'k' and self.source.file_index == 4:
-            if self.destination.file_index == 6:
-                return 'O-O'
+        return (self.piece.character == 'k' and
+                self.source.file_index == 4 and
+                self.destination.file_index == 6)
+
     @property
     def is_queenside_castle(self):
-        if self.piece.character == 'k' and self.source.file_index == 4:
-            if self.destination.file_index == 2:
-                return 'O-O-O'
+        return (self.piece.character == 'k' and
+                self.source.file_index == 4 and
+                self.destination.file_index == 2)
 
     def __repr__(self):
         return "Move({0})".format(self.algebraic)
+
+    def __eq__(self, other):
+        return (type(self) == type(other) and
+                self.destination == other.destination and
+                self.source == other.source and
+                self.chess_rules == other.chess_rules)
 
 
 class FinalizedMove(Move):

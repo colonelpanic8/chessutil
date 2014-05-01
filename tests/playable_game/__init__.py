@@ -24,11 +24,11 @@ class BasePlayableChessGameTestCase(T.TestCase):
 
     @T.let
     def notation_processor(self):
-        return notation.ChessNotationProcessor(self.chess_board)
+        return notation.ChessNotationProcessor(self.chess_rules)
 
     @T.let
     def chess_rules(self):
-        return self.notation_processor._rules
+        return rules.ChessRules(self.chess_board)
 
     def build_move(self, src, dst, *args, **kwargs):
         return Move(src, dst, self.chess_rules, *args, **kwargs)
@@ -54,15 +54,12 @@ class BasePlayableChessGameTestCase(T.TestCase):
             self.make_legal_move(move)
 
     def set_piece(self, algebraic_move, piece):
-        self.chess_board.set_piece(
-            *notation.ChessNotationProcessor.square_name_to_indices(algebraic_move),
-            piece=piece
-        )
+        self.chess_rules[algebraic_move] = piece
 
-    def check_move_info(self, algebraic_move, *args):
+    def check_move_info(self, algebraic_move, src, dst, *args, **kwargs):
         T.assert_equal(
             self.notation_processor.parse_algebraic_move(algebraic_move),
-            common.MoveInfo(*args)
+            Move(src, dst, self.chess_rules, *args, **kwargs)
         )
 
     @staticmethod
