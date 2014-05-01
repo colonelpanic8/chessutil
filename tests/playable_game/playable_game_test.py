@@ -12,6 +12,7 @@ class PlayableChessGameTestCase(T.TestCase):
 
     def test_moves(self):
         for move in self.moves:
-            print move
-            self.playable_game.make_move_from_algebraic_and_return_uci(move)
-            self.playable_game._rules._board.print_board()
+            T.assert_equal(
+                self.playable_game.make_move_from_algebraic(move).algebraic,
+                move
+            )

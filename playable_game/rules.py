@@ -9,21 +9,31 @@ from .position import Position
 
 class ChessRules(object):
 
-    def __init__(self, _board=None):
+    def delta_rules(self):
+        return type(self)(_board=board.DeltaChessBoard(self._board),
+                          king_position=self.king_position.copy(),
+                          queen_side_castling=self.queen_side_castling.copy(),
+                          king_side_castling=self.king_side_castling.copy(),
+                          action=self.action)
+
+    def __init__(self, _board=None, king_position=None,
+                 king_side_castling=None, queen_side_castling=None,
+                 action=common.color.WHITE):
         if _board == None:
             _board = board.BasicChessBoard()
         self._board = _board
-        self.action = common.color.WHITE
+        self.action = action
         self.moves = []
-        self.king_position = {
+        self.king_position = king_position or {
             common.color.WHITE: Position.make('e1'),
             common.color.BLACK: Position.make('e8')
         }
-        self.king_side_castling = {
+        self.king_side_castling = king_side_castling or {
             common.color.WHITE: True,
             common.color.BLACK: True
         }
-        self.queen_side_castling = self.king_side_castling.copy()
+        self.queen_side_castling = queen_side_castling or \
+                                   self.king_side_castling.copy()
 
     @Position.provide_position
     def get_legal_moves(self, position):
@@ -62,17 +72,18 @@ class ChessRules(object):
         if not self.is_legal_move(move.source, move.destination):
             raise common.IllegalMoveError()
 
-        piece = self._board.get_piece(move.source)
+        piece = self._board[move.source]
 
         # Make sure that we got promotion info if we need it, and that we didn't
         # get it if we don't.
+        self._check_promotion_info(move, piece)
+        return self._make_move(move.finalized())
+
+    def _make_move(self, move):
+        piece = self._board[move.source]
         if isinstance(piece, pieces.Pawn):
             self._handle_pawn_move(move)
-        elif move.promotion is not None:
-            raise common.IllegalMoveError("Promotion not allowed for this move.")
 
-        # We need to finalize the move before switching pieces.
-        move.finalize()
         if isinstance(piece, pieces.King):
             self._handle_king_move(move)
 
@@ -95,11 +106,15 @@ class ChessRules(object):
         self.moves.append(move)
         return move
 
-    def _handle_pawn_move(self, move):
-        if not ((move.promotion is not None) ==
-                (move.destination.rank_index in (0, 7))):
-            raise common.IllegalMoveError()
+    def _check_promotion_info(self, move, piece):
+        if isinstance(piece, pieces.Pawn):
+            if not ((move.promotion is not None) ==
+                    (move.destination.rank_index in (0, 7))):
+                raise common.IllegalMoveError()
+        elif move.promotion is not None:
+            raise common.IllegalMoveError("Promotion not allowed for this move.")
 
+    def _handle_pawn_move(self, move):
         # Handle enpassant
         if (move.destination.file_index != move.source.file_index and
            self._board[move.destination].is_empty):
@@ -191,5 +206,11 @@ class ChessRules(object):
     def can_castle_queenside(self, color):
         return self.queen_side_castling[color]
 
-    def move_checks(self, move):
-        return False
+    def is_king_threatened(self, color):
+        return self.is_square_threatened(self.king_position[color],
+                                         by_color=color.opponent)
+
+    def delivers_check(self, move):
+        delta_rules = self.delta_rules()
+        delta_rules._make_move(move)
+        return delta_rules.is_king_threatened(delta_rules.action)

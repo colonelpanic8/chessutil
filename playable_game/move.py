@@ -5,9 +5,7 @@ from .pieces import Piece
 
 
 
-class Move(object):
-
-    finalized_attributes = ('piece', 'taken_piece', 'disambiguation', 'delivers_check')
+class BaseMove(object):
 
     @Position.src_dst_provide_position
     def __init__(self, source, destination, chess_rules, promotion=None):
@@ -15,27 +13,6 @@ class Move(object):
         self.destination = destination
         self.promotion = Piece.get_promotion_class(promotion)
         self.chess_rules = chess_rules
-
-    def finalize(self):
-        for attribute in self.finalized_attributes:
-            self.__dict__[attribute] = getattr(self, attribute)
-        self.__class__ = FinalizedMove
-
-    @property
-    def piece(self):
-        return self.chess_rules[self.source]
-
-    @property
-    def taken_piece(self):
-        return self.chess_rules[self.destination]
-
-    @property
-    def disambiguation(self):
-        return self.piece.build_disambiguation(self.chess_rules, self)
-
-    @property
-    def delivers_check(self):
-        return self.chess_rules.move_checks(self)
 
     @property
     def uci(self):
@@ -53,7 +30,7 @@ class Move(object):
     @property
     def promotion_string(self):
         return '' if self.promotion is None else '={0}'.format(
-            self.promotion.character
+            self.promotion.character.upper()
         )
 
     @property
@@ -88,6 +65,38 @@ class Move(object):
                 self.chess_rules == other.chess_rules)
 
 
-class FinalizedMove(Move):
+class FinalizedMove(BaseMove):
 
-    piece = taken_piece = disambiguation = delivers_check = None
+    finalized_attributes = ('piece', 'taken_piece', 'disambiguation')
+    delivers_check = False
+
+    @classmethod
+    def from_move(cls, move):
+        self = cls(move.source, move.destination,
+                   move.chess_rules, move.promotion)
+        for attribute in cls.finalized_attributes:
+            setattr(self, attribute, getattr(move, attribute))
+        self.delivers_check = self.chess_rules.delivers_check(self)
+        return self
+
+
+class Move(BaseMove):
+
+    def finalized(self):
+        return FinalizedMove.from_move(self)
+
+    @property
+    def piece(self):
+        return self.chess_rules[self.source]
+
+    @property
+    def taken_piece(self):
+        return self.chess_rules[self.destination]
+
+    @property
+    def disambiguation(self):
+        return self.piece.build_disambiguation(self.chess_rules, self)
+
+    @property
+    def delivers_check(self):
+        return self.chess_rules.delivers_check(self)
