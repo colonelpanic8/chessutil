@@ -27,6 +27,9 @@ class ChessRules(object):
 
     @Position.provide_position
     def get_legal_moves(self, position):
+        piece = self._board[position]
+        if piece.is_empty:
+            raise common.PieceNotFoundError()
         if self._board[position].color != self.action:
             raise common.ActiveColorError()
         return self._filter_moves_for_king_safety(
@@ -90,6 +93,7 @@ class ChessRules(object):
             self._board[move.destination] = move.promotion(piece.color)
         self.action = self.action.opponent
         self.moves.append(move)
+        return move
 
     def _handle_pawn_move(self, move):
         if not ((move.promotion is not None) ==

@@ -40,7 +40,7 @@ class Move(object):
     @property
     def uci(self):
         return (self.source.algebraic + self.destination.algebraic +
-                self.promotion.character)
+                (self.promotion.character if self.promotion is not None else ''))
 
     @property
     def take_string(self):

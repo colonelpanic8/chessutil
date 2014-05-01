@@ -158,6 +158,9 @@ class PieceFinder(object):
         self.color = color
         self.find_all = find_all
 
+    def _piece_matches(self, piece):
+        return piece.color == self.color and type(piece) == self.piece_class
+
 
 class NormalPieceFinder(PieceFinder):
 
@@ -180,7 +183,7 @@ class NormalPieceFinder(PieceFinder):
             except common.IllegalPositionError:
                 return None
 
-            if self.chess_board[test_position].color == self.color:
+            if self._piece_matches(self.chess_board[test_position]):
                 return test_position
 
         if self.find_all:
@@ -257,9 +260,6 @@ class SlidingPieceFinder(PieceFinder):
                 return None
         else:
             return None
-
-    def _piece_matches(self, piece):
-        return piece.color == self.color and type(piece) == self.piece_class
 
     def _find_simple(self, destination_position, source_rank, source_file):
         assert not (source_rank is None and source_file is None)
@@ -435,10 +435,12 @@ class Empty(object):
     class __metaclass__(type):
 
         def __str__(cls):
-            return "."
+            return cls.character
 
     is_empty = True
     color = common.color.NONE
+    character = '.'
+    
 
     def get_all_threatened_moves(self, *args):
         return None

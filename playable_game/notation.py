@@ -11,7 +11,7 @@ class ChessNotationProcessor(object):
 
     def __init__(self, chess_rules=None):
         if chess_rules is None:
-            self._rules = rules.ChessRules(self._board)
+            self._rules = rules.ChessRules()
         else:
             self._rules = chess_rules
 
@@ -61,7 +61,6 @@ class ChessNotationProcessor(object):
             find_all=True
         )
         if len(results) > 1:
-            print results
             raise common.AmbiguousAlgebraicMoveError()
         source, = results
         return self._build_move(source, destination)
@@ -71,7 +70,6 @@ class ChessNotationProcessor(object):
 
     def _is_pawn_move(self, algebraic_move):
         return algebraic_move[0].islower()
-
 
     def _parse_castle_move(self, algebraic_move):
         # Handle Castling
@@ -101,7 +99,7 @@ class ChessNotationProcessor(object):
 
         destination = Position.make(algebraic_move[-2:])
         disambiguation = algebraic_move[:-2]
-        double_move_rank = 3 if self._rules.action is common.color.WHITE else 4
+        double_move_rank = 3 if self._rules.action == common.color.WHITE else 4
         if disambiguation:
             source = Position.make((destination.rank_index - self._rules.action,
                                    common.file_to_index(disambiguation[0])))
