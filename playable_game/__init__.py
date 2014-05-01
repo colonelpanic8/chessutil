@@ -1,1 +1,1 @@
-#from . playable_game import PlayableChessGame
+from . playable_game import PlayableChessGame
