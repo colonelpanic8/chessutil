@@ -15,6 +15,9 @@ class PlayableChessGame(object):
         move = self._notation_processor.parse_algebraic_move(algebraic_move)
         return self._rules.make_legal_move(move)
 
+    def make_move_direct(self, move):
+        return self._rules.make_legal_move(move)
+
     def make_moves_from_long_uci_string(self, long_uci_string):
         moves = self._notation_processor.build_moves_from_long_uci_string(
             long_uci_string
