@@ -53,8 +53,9 @@ class Piece(object):
 
         @classmethod
         def get_piece_class(cls, piece_char_or_class):
-            if isinstance(piece_char_or_class, str):
+            if isinstance(piece_char_or_class, basestring):
                 return cls.character_to_piece_class[piece_char_or_class.lower()]
+            assert isinstance(piece_char_or_class, Piece)
             return piece_char_or_class
 
         @classmethod
@@ -252,6 +253,8 @@ class SlidingPieceFinder(PieceFinder):
         return []
 
     def _can_use_find_simple(self, destination_position, source_rank, source_file):
+        # We can't use find simple if the destination[rank, file] is the same as the
+        # source[rank, file] because there is no way to triangulate in that case.
         return (
             source_rank is not None and
             source_rank != destination_position.rank_index
@@ -289,14 +292,15 @@ class SlidingPieceFinder(PieceFinder):
                           if math.copysign(file_delta, direction[1]) == file_delta]
             magnitude = abs(file_delta);
 
-        for rank_direction, file_direction in self.piece_class.directions:
+        for rank_direction, file_direction in directions:
             try:
                 position = destination_position.delta(rank_direction * magnitude,
                                                       file_direction * magnitude)
             except common.IllegalPositionError:
                 pass
-            if self._piece_matches(self.chess_board[position]):
-                return [position]
+            else:
+                if self._piece_matches(self.chess_board[position]):
+                    return [position]
 
 
 class SlidingPiece(Piece):
@@ -309,6 +313,7 @@ class SlidingPiece(Piece):
     def move_iterators_matching(cls, destination_position,
                                 source_rank=None, source_file=None):
         move_iterators = cls.move_iterators(destination_position)
+
         if source_rank is not None:
             move_iterators = [move_iterator
                               for move_iterator in move_iterators
@@ -394,7 +399,7 @@ class Pawn(Piece):
     move_prefix = ''
     character = 'p'
     white_unicode_string = u'♙'
-    black_unicode_string = u'♝'
+    black_unicode_string = u'♟'
     _enpassant_squares = {
         common.color.WHITE: 4,
         common.color.BLACK: 3

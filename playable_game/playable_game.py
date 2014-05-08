@@ -22,7 +22,7 @@ class PlayableChessGame(object):
         moves = self._notation_processor.build_moves_from_long_uci_string(
             long_uci_string
         )
-        return map(self.make_move_from_algebraic, moves)
+        return map(self.make_move_direct, moves)
 
     def board_string(self):
         return self._rules._board.board_string()

@@ -41,7 +41,7 @@ class ChessNotationProcessor(object):
             promotion = move[-1].upper()
             move = move[:-1]
         assert len(move) == 4
-        return self.make_move_info_from_square_names(move[:2], move[2:], promotion)
+        return self._build_move(move[:2], move[2:], promotion)
 
     def parse_algebraic_move(self, algebraic_move):
         algebraic_move = algebraic_move.strip(' \n+#!?')
@@ -71,7 +71,6 @@ class ChessNotationProcessor(object):
                     source_file = common.file_to_index(disambiguation)
                 else:
                     source_rank = common.rank_to_index(value)
-
         results = self._rules.find_piece(
             pieces.Piece.get_piece_class(piece_string.lower()),
             destination,
