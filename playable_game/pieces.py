@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import itertools
 import math
@@ -69,6 +70,8 @@ class Piece(object):
     move_iterator_class = None
     piece_finder_class = None
     is_empty = False
+    black_unicode_string = None
+    white_unicode_string = None
 
     @classmethod
     @Position.provide_position
@@ -121,6 +124,12 @@ class Piece(object):
 
     def __str__(self):
         return self.name
+
+    @property
+    def unicode_string(self):
+        return (self.white_unicode_string
+                if self.color == common.color.WHITE else
+                self.black_unicode_string)
 
     def build_disambiguation(self, chess_board, move):
         piece_in_same_rank = False
@@ -320,6 +329,8 @@ _back_rank_squares = {common.color.WHITE: 0, common.color.BLACK: 7}
 class King(NormalPiece):
 
     character = 'k'
+    white_unicode_string = u'♔'
+    black_unicode_string = u'♚'
     directions = _diagonals + _straights
 
     @property
@@ -348,24 +359,32 @@ class King(NormalPiece):
 class Queen(SlidingPiece):
 
     character = 'q'
+    white_unicode_string = u'♕'
+    black_unicode_string = u'♛'
     directions = _diagonals + _straights
 
 
 class Rook(SlidingPiece):
 
     character = 'r'
+    white_unicode_string = u'♖'
+    black_unicode_string = u'♜'
     directions = _straights
 
 
 class Bishop(SlidingPiece):
 
     character = 'b'
+    white_unicode_string = u'♗'
+    black_unicode_string = u'♝'
     directions = _diagonals
 
 
 class Knight(NormalPiece):
 
     character = 'n'
+    white_unicode_string = u'♘'
+    black_unicode_string = u'♞'
     directions = [(1,  2), (2,  1), (-1,  2), (-2,  1),
                   (1, -2), (2, -1), (-1, -2), (-2, -1)]
 
@@ -374,6 +393,8 @@ class Pawn(Piece):
 
     move_prefix = ''
     character = 'p'
+    white_unicode_string = u'♙'
+    black_unicode_string = u'♝'
     _enpassant_squares = {
         common.color.WHITE: 4,
         common.color.BLACK: 3
@@ -439,8 +460,9 @@ class Empty(object):
 
     is_empty = True
     color = common.color.NONE
-    character = '.'
-    
+    character = u'.'
+    unicode_string = character
+
 
     def get_all_threatened_moves(self, *args):
         return None

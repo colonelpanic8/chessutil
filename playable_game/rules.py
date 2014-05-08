@@ -71,12 +71,7 @@ class ChessRules(object):
     def make_legal_move(self, move):
         if not self.is_legal_move(move.source, move.destination):
             raise common.IllegalMoveError()
-
-        piece = self._board[move.source]
-
-        # Make sure that we got promotion info if we need it, and that we didn't
-        # get it if we don't.
-        self._check_promotion_info(move, piece)
+        self._check_promotion_info(move)
         return self._make_move(move.finalized())
 
     def _make_move(self, move):
@@ -86,9 +81,6 @@ class ChessRules(object):
 
         if isinstance(piece, pieces.King):
             self._handle_king_move(move)
-
-        if isinstance(piece, pieces.Pawn):
-            self._handle_pawn_move(move)
 
         if move.source == Position.from_rank_file(0, 0):
             self.queen_side_castling[common.color.WHITE] = False
@@ -106,7 +98,10 @@ class ChessRules(object):
         self.moves.append(move)
         return move
 
-    def _check_promotion_info(self, move, piece):
+    def _check_promotion_info(self, move):
+        """Make sure that we got promotion info if we need it, and that we didn't
+        get it if we don't."""
+        piece = self._board[move.source]
         if isinstance(piece, pieces.Pawn):
             if not ((move.promotion is not None) ==
                     (move.destination.rank_index in (0, 7))):

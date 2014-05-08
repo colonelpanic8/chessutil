@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import functools
 
 from . import common
 from . import pieces
@@ -21,18 +22,22 @@ class ChessBoard(object):
 
     horizontal_table_border = "  +-----------------+"
 
-    def print_board(self):
-        print self.horizontal_table_border
+    def board_string(self, use_unicode_characters=True):
+        board_lines = [self.horizontal_table_border]
         for rank_index in range(8)[::-1]:
             row = [
                 self[rank_index, file_index] for file_index in range(8)
             ]
-            print "{0} | {1} {2} {3} {4} {5} {6} {7} {8} |".format(
+            board_lines.append(u"{0} | {1} {2} {3} {4} {5} {6} {7} {8} |".format(
                 rank_index + 1,
-                *map(lambda x: "." if x is None else x, row)
-            )
-        print self.horizontal_table_border
-        print "    A B C D E F G H"
+                *map(functools.partial(common.get_piece_character, use_unicode_characters=use_unicode_characters), row)
+            ))
+        board_lines.append(self.horizontal_table_border)
+        board_lines.append(u"    A B C D E F G H")
+        return '\n'.join(board_lines)
+
+    def print_board(self, use_unicode_characters=True):
+        print self.board_string(use_unicode_characters=use_unicode_characters)
 
     @property
     def _new_board_array(self):
@@ -49,9 +54,6 @@ class ChessBoard(object):
 
     def __getitem__(self, position):
         return self.get_piece(position)
-
-    def move_checks(self, *args):
-        return False
 
 
 class BasicChessBoard(ChessBoard):
