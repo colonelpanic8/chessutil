@@ -20,13 +20,30 @@ class DirectionalIterator(object):
         self.rank_index += self.rank_direction
         self.file_index += self.file_direction
         try:
-            return Position.from_rank_file(self.rank_index,
-                                                  self.file_index)
+            return Position.from_rank_file(self.rank_index, self.file_index)
         except common.IllegalPositionError:
             raise StopIteration()
 
     def __iter__(self):
         return self
+
+    def matches(self, rank_delta, file_delta):
+        if (self._both_are_zero_if_one_is(rank_delta, self.rank_direction) or
+            self._both_are_zero_if_one_is(file_delta, self.file_direction)):
+            return False
+        if rank_delta: # We don't care about 0 or None
+            if math.copysign(rank_delta, self.rank_direction) != rank_delta:
+                return False
+        if file_delta: # We don't care about 0 or None
+            if math.copysign(file_delta, self.file_direction) != file_delta:
+                return False
+        return True
+
+    @staticmethod
+    def _both_are_zero_if_one_is(first, second):
+        if first is None or second is None:
+            return False
+        return ((first == 0 or second == 0) and first != second)
 
 
 class OneSquareIterator(DirectionalIterator):
@@ -55,7 +72,7 @@ class Piece(object):
         def get_piece_class(cls, piece_char_or_class):
             if isinstance(piece_char_or_class, basestring):
                 return cls.character_to_piece_class[piece_char_or_class.lower()]
-            assert isinstance(piece_char_or_class, Piece)
+            assert issubclass(piece_char_or_class, Piece)
             return piece_char_or_class
 
         @classmethod
@@ -171,16 +188,30 @@ class PieceFinder(object):
     def _piece_matches(self, piece):
         return piece.color == self.color and type(piece) == self.piece_class
 
+    @staticmethod
+    def _get_deltas(destination_position, source_rank, source_file):
+        rank_delta = None if source_rank is None else \
+                     source_rank - destination_position.rank_index
+        file_delta = None if source_file is None else \
+                     source_file - destination_position.file_index
+        return rank_delta, file_delta
+
+    @Position.provide_position
+    def move_iterators_matching(self, destination_position,
+                                source_rank=None, source_file=None):
+        rank_delta, file_delta = self._get_deltas(destination_position,
+                                                  source_rank, source_file)
+        return [move_iterator
+                for move_iterator in self.piece_class.move_iterators(destination_position)
+                if move_iterator.matches(rank_delta, file_delta)]
+
 
 class NormalPieceFinder(PieceFinder):
 
     @Position.provide_position
     def find(self, destination_position, source_rank=None, source_file=None):
-        rank_delta = None if source_rank is None else \
-                     source_rank - destination_position.rank_index
-        file_delta = None if source_file is None else \
-                     source_file - destination_position.file_index
-
+        rank_delta, file_delta = self._get_deltas(destination_position,
+                                                  source_rank, source_file)
         def direction_matches(rank_direction, file_direction):
             if rank_delta is not None and rank_direction != rank_delta:
                 return None
@@ -199,7 +230,7 @@ class NormalPieceFinder(PieceFinder):
         if self.find_all:
             return self._find_all(direction_matches)
         else:
-            return [self._find_one(direction_matches)]
+            return self._find_one(direction_matches)
 
     @common.listify
     def _find_all(self, direction_matches):
@@ -212,7 +243,8 @@ class NormalPieceFinder(PieceFinder):
         for direction in self.piece_class.directions:
             position = direction_matches(*direction)
             if position is not None:
-                return position
+                return [position]
+        return []
 
 
 class NormalPiece(Piece):
@@ -225,105 +257,48 @@ class SlidingPieceFinder(PieceFinder):
 
     @Position.provide_position
     def find(self, destination_position, source_rank=None, source_file=None):
-        if self._can_use_find_simple(destination_position,
-                                     source_rank, source_file):
-            return self._find_simple(destination_position,
-                                     source_rank, source_file)
-
-        move_iterators = self.piece_class.move_iterators_matching(
+        move_iterators = self.move_iterators_matching(
             destination_position, source_rank, source_file
         )
+        def find_using_move_iterator(move_iterator):
+            for position in move_iterator:
+                piece = self.chess_board[position]
+                if self._piece_matches(piece):
+                    if source_rank is not None:
+                        if position.rank_index != source_rank:
+                            return None
+                    if source_file is not None:
+                        if position.file_index != source_file:
+                            return None
+                    return position
+                elif piece.color != common.color.NONE:
+                    return None
+            else:
+                return None
         if self.find_all:
-            return self._find_all(move_iterators)
+            return self._find_all(move_iterators, find_using_move_iterator)
         else:
-            return self._find_one(move_iterators)
+            return self._find_one(move_iterators, find_using_move_iterator)
 
     @common.listify
-    def _find_all(self, move_iterators):
+    def _find_all(self, move_iterators, find_using_move_iterator):
         for move_iterator in move_iterators:
-            position = self._find_using_move_iterator(move_iterator)
+            position = find_using_move_iterator(move_iterator)
             if position is not None:
                 yield position
 
-    def _find_one(self, move_iterators):
+    def _find_one(self, move_iterators, find_using_move_iterator):
         for move_iterator in move_iterators:
-            position = self._find_using_move_iterator(move_iterator)
+            position = find_using_move_iterator(move_iterator)
             if position is not None:
                 return [position]
         return []
-
-    def _can_use_find_simple(self, destination_position, source_rank, source_file):
-        # We can't use find simple if the destination[rank, file] is the same as the
-        # source[rank, file] because there is no way to triangulate in that case.
-        return (
-            source_rank is not None and
-            source_rank != destination_position.rank_index
-        ) or (
-            source_file is not None and
-            source_file != destination_position.file_index
-        )
-
-    def _find_using_move_iterator(self, move_iterator):
-        for position in move_iterator:
-            piece = self.chess_board[position]
-            if self._piece_matches(piece):
-                return position
-            elif piece.color != common.color.NONE:
-                return None
-        else:
-            return None
-
-    def _find_simple(self, destination_position, source_rank, source_file):
-        assert not (source_rank is None and source_file is None)
-        rank_delta = None if source_rank is None else \
-                     source_rank - destination_position.rank_index
-        file_delta = None if source_file is None else \
-                     source_file - destination_position.file_index
-
-        directions = self.piece_class.directions
-
-        if rank_delta is not None:
-            directions = [direction for direction in directions
-                          if math.copysign(rank_delta, direction[0]) == rank_delta]
-            magnitude = abs(rank_delta);
-
-        if file_delta is not None:
-            directions = [direction for direction in directions
-                          if math.copysign(file_delta, direction[1]) == file_delta]
-            magnitude = abs(file_delta);
-
-        for rank_direction, file_direction in directions:
-            try:
-                position = destination_position.delta(rank_direction * magnitude,
-                                                      file_direction * magnitude)
-            except common.IllegalPositionError:
-                pass
-            else:
-                if self._piece_matches(self.chess_board[position]):
-                    return [position]
 
 
 class SlidingPiece(Piece):
 
     move_iterator_class = DirectionalIterator
     piece_finder_class = SlidingPieceFinder
-
-    @classmethod
-    @Position.provide_position
-    def move_iterators_matching(cls, destination_position,
-                                source_rank=None, source_file=None):
-        move_iterators = cls.move_iterators(destination_position)
-
-        if source_rank is not None:
-            move_iterators = [move_iterator
-                              for move_iterator in move_iterators
-                              if move_iterator.rank_direction == 0]
-
-        if source_file is not None:
-            move_iterators = [move_iterator
-                              for move_iterator in move_iterators
-                              if move_iterator.file_direction == 0]
-        return move_iterators
 
 
 _diagonals = ((-1, 1), (1, -1), (1, 1), (-1, -1))

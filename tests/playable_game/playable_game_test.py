@@ -10,12 +10,16 @@ class PlayableChessGameTestCase(T.TestCase):
     def playable_game(self):
         return playable_game.PlayableChessGame()
 
-    def play_moves(self, moves):
+    def play_moves(self, moves, print_moves=False):
         for move in moves:
+            if print_moves:
+                print move
             T.assert_equal(
                 self.playable_game.make_move_from_algebraic(move).algebraic,
                 move
             )
+            if print_moves:
+                print self.playable_game.board_string()
 
     def test_moves1(self):
         self.play_moves(self.moves1)
@@ -24,3 +28,8 @@ class PlayableChessGameTestCase(T.TestCase):
 
     def test_moves2(self):
         self.play_moves(self.moves2)
+
+    moves3 = ['d4', 'd5', 'Nf3', 'Nc6', 'e3', 'Bf5', 'Bd3', 'Nh6', 'Bxf5', 'Nxf5', 'a3', 'e6', 'Nbd2', 'Bd6', 'O-O', 'Qf6', 'Re1', 'Qg6', 'e4', 'Nfe7', 'exd5', 'Nxd5', 'c4', 'Nf4', 'g3', 'Nh3+', 'Kg2', 'Ng5', 'Ne4', 'Nxe4', 'c5', 'Be7', 'Ne5', 'Nxe5', 'dxe5', 'Bxc5', 'Be3', 'Bxe3', 'Rxe3', 'Nc5', 'b4', 'Nd7', 'Rc1', 'O-O-O', 'Rec3', 'c6', 'b5', 'Nxe5', 'Qa4', 'Kb8', 'bxc6', 'Nxc6', 'Rb3', 'Rc8', 'Rxc6']
+
+    def test_moves3(self):
+        self.play_moves(self.moves3)

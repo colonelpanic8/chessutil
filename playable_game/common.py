@@ -17,12 +17,13 @@ class color(object):
 
 
 class ActiveColorError(Exception): pass
+class AmbiguousAlgebraicMoveError(Exception): pass
 class IllegalMoveError(Exception): pass
+class IllegalPositionError(Exception): pass
 class IllegalSquareError(Exception): pass
+class ImpossibleMoveError(Exception): pass
 class InvalidNotationError(Exception): pass
 class PieceNotFoundError(Exception): pass
-class IllegalPositionError(Exception): pass
-class AmbiguousAlgebraicMoveError(Exception): pass
 
 
 def listify(function):

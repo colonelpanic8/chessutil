@@ -81,7 +81,10 @@ class ChessNotationProcessor(object):
         )
         if len(results) > 1:
             raise common.AmbiguousAlgebraicMoveError()
-        source, = results
+        try:
+            source, = results
+        except:
+            raise common.ImpossibleMoveError()
         return self._build_move(source, destination)
 
     def _build_move(self, source, destination, promotion=None):

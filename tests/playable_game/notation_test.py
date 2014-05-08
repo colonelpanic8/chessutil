@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from . import *
 
 
@@ -42,22 +43,22 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
         self.set_piece('a7', pieces.Pawn(common.color.WHITE))
         T.assert_equal(
             self.notation_processor.parse_algebraic_move('a8=Q+'),
-            self.build_move((6, 0), (7, 0), pieces.Queen(common.color.BLACK))
+            self.build_move((6, 0), (7, 0), pieces.Queen)
         )
         T.assert_equal(
             self.notation_processor.parse_algebraic_move('a8=R'),
-            self.build_move((6, 0), (7, 0), pieces.Rook(common.color.BLACK))
+            self.build_move((6, 0), (7, 0), pieces.Rook)
         )
 
         self.chess_rules.action = common.color.BLACK
         T.assert_equal(
             self.notation_processor.parse_algebraic_move('a1=R'),
-            self.build_move((1, 0), (0, 0), pieces.Rook(common.color.BLACK))
+            self.build_move((1, 0), (0, 0), pieces.Rook)
         )
 
         T.assert_equal(
             self.notation_processor.parse_algebraic_move('bxa1=R'),
-            self.build_move((1, 1), (0, 0), pieces.Rook(common.color.BLACK))
+            self.build_move((1, 1), (0, 0), pieces.Rook)
         )
 
     def test_castling(self):
@@ -128,6 +129,43 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
 
         self.chess_rules.action = common.color.BLACK
         self.check_move_info('Ke7', (7, 4), (6, 4))
+
+    def test_piece_location(self):
+        #   +-----------------+
+        # 8 | . . . . ♚ . . . |
+        # 7 | . . . . . . . . |
+        # 6 | . . . . . . . . |
+        # 5 | . . . . ♕ . . . |
+        # 4 | . ♕ . . . . . . |
+        # 3 | . . ♕ . . . . . |
+        # 2 | ♕ . . ♕ ♕ . . . |
+        # 1 | . . . . ♔ . . . |
+        #   +-----------------+
+        #     A B C D E F G H
+        self.set_piece('b4', pieces.Queen(common.color.WHITE))
+        self.set_piece('a2', pieces.Queen(common.color.WHITE))
+        self.set_piece('c3', pieces.Queen(common.color.WHITE))
+        self.set_piece('d2', pieces.Queen(common.color.WHITE))
+        self.set_piece('e5', pieces.Queen(common.color.WHITE))
+        self.set_piece('e2', pieces.Queen(common.color.WHITE))
+        self.check_move_info('Qbb2', 'b4', 'b2')
+        self.check_move_info('Qab2', 'a2', 'b2')
+        self.check_move_info('Qcb2', 'c3', 'b2')
+        with T.assert_raises(common.ImpossibleMoveError):
+            self.notation_processor.parse_algebraic_move('Qeb2')
+
+        self.set_piece('c3', pieces.Empty)
+        self.check_move_info('Qeb2', 'e5', 'b2')
+
+    def test_ambiguous_move_error(self):
+        self.set_piece('c2', pieces.Queen(common.color.WHITE))
+        self.set_piece('c3', pieces.Queen(common.color.WHITE))
+        with T.assert_raises(common.AmbiguousAlgebraicMoveError):
+            self.notation_processor.parse_algebraic_move('Qcb2')
+
+    def test_no_move_found(self):
+        with T.assert_raises(common.ImpossibleMoveError):
+            self.notation_processor.parse_algebraic_move('Qcb2')
 
 
 if __name__ == '__main__':
