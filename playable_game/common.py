@@ -55,22 +55,5 @@ def square_name_to_indices(square_name):
     return rank_to_index(int(rank_char)), file_to_index(file_char)
 
 
-def parse_long_uci_string(uci_string):
-    uci_moves = []
-    while len(uci_string) > 5:
-        try:
-            int(uci_string[5])
-        except ValueError:
-            # Optimistically assume we have a promotion
-            # rather than bad input
-            end_index = 5
-        else:
-            end_index = 4
-        uci_moves.append(uci_string[:end_index])
-        uci_string = uci_string[end_index:]
-    uci_moves.append(uci_string)
-    return uci_moves
-
-
 def get_piece_character(piece, use_unicode_characters=False):
     return piece.unicode_string if use_unicode_characters else str(piece)

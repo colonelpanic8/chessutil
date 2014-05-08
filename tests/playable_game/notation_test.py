@@ -10,6 +10,12 @@ class ChessNotationProcessorTest(BasePlayableChessGameTestCase):
 
 class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCase):
 
+    def test_parse_long_uci_string(self):
+        T.assert_equal(
+            self.notation_processor.parse_long_uci_string('e4e5a6a7b3b5e7e8qd7d8rd3d4'),
+            ['e4e5', 'a6a7', 'b3b5', 'e7e8q', 'd7d8r', 'd3d4']
+        )
+
     def test_pawn_move_parsing(self):
         self.chess_rules.action = common.color.WHITE
         self.set_piece('f7', pieces.Pawn(common.color.WHITE))
