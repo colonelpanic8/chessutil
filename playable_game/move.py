@@ -4,7 +4,6 @@ from .position import Position
 from .pieces import Piece
 
 
-
 class BaseMove(object):
 
     @Position.src_dst_provide_position

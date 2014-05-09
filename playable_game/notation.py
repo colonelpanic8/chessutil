@@ -18,7 +18,10 @@ class ChessNotationProcessor(object):
     @staticmethod
     def parse_long_uci_string(uci_string):
         uci_moves = []
-        while len(uci_string) > 5:
+        while uci_string:
+            if len(uci_string) < 6:
+                uci_moves.append(uci_string)
+                break
             try:
                 int(uci_string[5])
             except ValueError:
@@ -29,7 +32,6 @@ class ChessNotationProcessor(object):
                 end_index = 4
             uci_moves.append(uci_string[:end_index])
             uci_string = uci_string[end_index:]
-        uci_moves.append(uci_string)
         return uci_moves
 
     def build_moves_from_long_uci_string(self, uci_string):
