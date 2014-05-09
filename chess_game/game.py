@@ -2,7 +2,7 @@ from . import notation
 from . import rules
 
 
-class PlayableChessGame(object):
+class ChessGame(object):
 
     def __init__(self):
         self._rules = rules.ChessRules()

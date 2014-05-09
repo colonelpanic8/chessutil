@@ -1,17 +1,12 @@
 import testify as T
 
-from playable_game import board
-from playable_game import common
-from playable_game import notation
-from playable_game import pieces
-from playable_game import rules
-from playable_game.move import Move
-from playable_game.position import Position
-
-
-def clear_everything_from_board(board):
-    for square_tuple, piece in board:
-        board.set_piece(*square_tuple)
+from chess_game import board
+from chess_game import common
+from chess_game import notation
+from chess_game import pieces
+from chess_game import rules
+from chess_game.move import Move
+from chess_game.position import Position
 
 
 class BasePlayableChessGameTestCase(T.TestCase):
@@ -35,7 +30,6 @@ class BasePlayableChessGameTestCase(T.TestCase):
 
     def make_legal_promotion(self, src, dst, **kwargs):
         return self.make_legal_move(self.build_move(src, dst, self.chess_rules, **kwargs))
-
 
     def make_legal_move(self, *args):
         if len(args) == 2:

@@ -157,15 +157,32 @@ class ClearedBoardChessNotationProcessorTest(ClearedBoardPlayableChessGameTestCa
         self.set_piece('c3', pieces.Empty)
         self.check_move_info('Qeb2', 'e5', 'b2')
 
-    def test_ambiguous_move_error(self):
-        self.set_piece('c2', pieces.Queen(common.color.WHITE))
-        self.set_piece('c3', pieces.Queen(common.color.WHITE))
-        with T.assert_raises(common.AmbiguousAlgebraicMoveError):
-            self.notation_processor.parse_algebraic_move('Qcb2')
-
     def test_no_move_found(self):
         with T.assert_raises(common.ImpossibleMoveError):
             self.notation_processor.parse_algebraic_move('Qcb2')
+
+# import pytest
+# @pytest.fixture
+# def chess_board():
+#     return board.BasicChessBoard()
+
+# @pytest.fixture
+# def chess_rules(chess_board):
+#     return rules.ChessRules(chess_board)
+
+# @pytest.fixture
+# def notation_processor(chess_rules):
+#     return notation.ChessNotationProcessor(chess_rules)
+
+# def test_no_move_found(notation_processor):
+#     with pytest.raises(common.ImpossibleMoveError):
+#         notation_processor.parse_algebraic_move('Qcb2')
+
+# def test_ambiguous_move_error(chess_rules, notation_processor):
+#     chess_rules['c2'] = pieces.Queen(common.color.WHITE)
+#     chess_rules['c3'] = pieces.Queen(common.color.WHITE)
+#     with pytest.raises(common.AmbiguousAlgebraicMoveError):
+#         notation_processor.parse_algebraic_move('Qcb2')
 
 
 if __name__ == '__main__':
