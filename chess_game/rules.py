@@ -1,8 +1,8 @@
 from __future__ import absolute_import
-import functools
 
 from . import board
 from . import common
+from . import move
 from . import pieces
 from .position import Position
 
@@ -32,8 +32,10 @@ class ChessRules(object):
             common.color.WHITE: True,
             common.color.BLACK: True
         }
-        self.queen_side_castling = queen_side_castling or \
-                                   self.king_side_castling.copy()
+        self.queen_side_castling = queen_side_castling or {
+            common.color.WHITE: True,
+            common.color.BLACK: True
+        }
 
     @Position.provide_position
     def get_legal_moves(self, position):
@@ -133,6 +135,29 @@ class ChessRules(object):
     def find_piece(self, piece_class, destination, *args, **kwargs):
         return piece_class.find(destination, self, *args, **kwargs)
 
+    @property
+    def legal_moves_available(self):
+        for i in range(8):
+            for j in range(8):
+                if self._board[i, j].color == self.action:
+                    if self.get_legal_moves((i, j)):
+                        return True
+        return False
+
+    @property
+    def in_checkmate(self):
+        return not self.legal_moves_available and self.is_king_threatened(self.action)
+
+    @property
+    def in_stalemate(self):
+        return not self.legal_moves_available and not self.is_king_threatened(self.action)
+
+    def is_move_checkmate(self, move):
+        delta_board = board.DeltaChessBoard(self._board)
+        delta_rules = ChessRules(delta_board)
+        delta_rules._make_move(move)
+        return delta_rules.in_checkmate
+
     @Position.provide_position
     def _filter_moves_for_king_safety(self, start_position, moves):
         moves = set(moves)
@@ -141,23 +166,7 @@ class ChessRules(object):
         delta_rules = ChessRules(delta_board)
 
         if isinstance(piece, pieces.King):
-            back_rank_index = 0 if piece.color is common.color.WHITE else 7
-            if start_position == Position.make((back_rank_index, 4)):
-                castling_square = Position.make((back_rank_index, 6))
-
-                if castling_square in moves and any(
-                    self.is_square_threatened((back_rank_index, file_index),
-                                              by_color=piece.color.opponent)
-                    for file_index in range(4, 7)
-                ):
-                    moves.remove(castling_square)
-                castling_square = Position.make((back_rank_index, 2))
-                if castling_square in moves and any(
-                    self.is_square_threatened((back_rank_index, file_index),
-                                              by_color=piece.color.opponent)
-                        for file_index in range(2, 5)
-                ):
-                    moves.remove(castling_square)
+            self._filter_illegal_castling_moves(moves, piece, start_position)
         else:
             # Do an initial check to see if we can avoid checking every move.
             delta_rules[start_position] = pieces.Empty
@@ -168,18 +177,42 @@ class ChessRules(object):
                 return moves
 
         king_safe_moves = []
-        for move in moves:
+        for move_destination in moves:
             if isinstance(piece, pieces.King):
-                king_position = move
+                king_position = move_destination
             else:
                 king_position = self.king_position[piece.color]
             delta_board.reset_to_parent()
-            delta_board.make_move(start_position, move, piece)
+            # This is ugly, but it needs to be done to make sure that
+            # a pawn removed by enpassant doesnt affect the
+            # determination of whether the king is safe.
+            if isinstance(piece, pieces.Pawn):
+                delta_rules._handle_pawn_move(move.BaseMove(start_position, move_destination, self))
+            delta_board.make_move(start_position, move_destination, piece)
             if not delta_rules.is_square_threatened(king_position,
                                                     by_color=piece.color.opponent):
-                king_safe_moves.append(move)
+                king_safe_moves.append(move_destination)
 
         return king_safe_moves
+
+    def _filter_illegal_castling_moves(self, moves, piece, start_position):
+        back_rank_index = 0 if piece.color is common.color.WHITE else 7
+        if start_position == Position.make((back_rank_index, 4)):
+            castling_square = Position.make((back_rank_index, 6))
+
+            if castling_square in moves and any(
+                self.is_square_threatened((back_rank_index, file_index),
+                                          by_color=piece.color.opponent)
+                for file_index in range(4, 7)
+            ):
+                moves.remove(castling_square)
+            castling_square = Position.make((back_rank_index, 2))
+            if castling_square in moves and any(
+                self.is_square_threatened((back_rank_index, file_index),
+                                          by_color=piece.color.opponent)
+                    for file_index in range(2, 5)
+            ):
+                moves.remove(castling_square)
 
     @Position.provide_position
     def get_squares_threatened_by(self, position):

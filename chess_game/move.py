@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from .position import Position
-from .pieces import Piece
+from .pieces import Pawn, Piece
 
 
 class BaseMove(object):
@@ -24,7 +24,7 @@ class BaseMove(object):
 
     @property
     def check_string(self):
-        return '+' if self.delivers_check else ''
+        return ('#' if self.chess_rules.is_move_checkmate(self) else '+') if self.delivers_check else ''
 
     @property
     def promotion_string(self):
@@ -90,6 +90,11 @@ class Move(BaseMove):
 
     @property
     def taken_piece(self):
+        # Handles enpassant.
+        if (isinstance(self.piece, Pawn) and
+            self.source.file_index != self.destination.file_index and
+            self.chess_rules[self.destination].is_empty):
+            return self.chess_rules[self.source.rank_index, self.destination.file_index]
         return self.chess_rules[self.destination]
 
     @property
