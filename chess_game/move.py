@@ -23,10 +23,6 @@ class BaseMove(object):
         return '' if self.taken_piece.is_empty else 'x'
 
     @property
-    def check_string(self):
-        return ('#' if self.chess_rules.is_move_checkmate(self) else '+') if self.delivers_check else ''
-
-    @property
     def promotion_string(self):
         return '' if self.promotion is None else '={0}'.format(
             self.promotion.character.upper()
@@ -66,7 +62,7 @@ class BaseMove(object):
 
 class FinalizedMove(BaseMove):
 
-    finalized_attributes = ('piece', 'taken_piece', 'disambiguation')
+    finalized_attributes = ('piece', 'taken_piece', 'disambiguation', 'check_string')
     delivers_check = False
 
     @classmethod
@@ -96,6 +92,10 @@ class Move(BaseMove):
             self.chess_rules[self.destination].is_empty):
             return self.chess_rules[self.source.rank_index, self.destination.file_index]
         return self.chess_rules[self.destination]
+
+    @property
+    def check_string(self):
+        return ('#' if self.chess_rules.is_move_checkmate(self) else '+') if self.delivers_check else ''
 
     @property
     def disambiguation(self):

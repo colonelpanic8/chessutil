@@ -9,6 +9,7 @@ from .position import Position
 
 class ChessRules(object):
 
+    @property
     def delta_rules(self):
         return type(self)(_board=board.DeltaChessBoard(self._board),
                           king_position=self.king_position.copy(),
@@ -39,7 +40,7 @@ class ChessRules(object):
 
     @Position.provide_position
     def get_legal_moves(self, position):
-        piece = self._board[position]
+        piece = self[position]
         if piece.is_empty:
             raise common.PieceNotFoundError()
         if self._board[position].color != self.action:
@@ -53,7 +54,7 @@ class ChessRules(object):
     def is_square_threatened(self, position, by_color=common.color.WHITE):
         for i in range(8):
             for j in range(8):
-                if (self._board[i, j].color == by_color and
+                if (self[i, j].color == by_color and
                     position in set(self.get_squares_threatened_by((i, j)))):
                     return True
         return False
@@ -139,7 +140,7 @@ class ChessRules(object):
     def legal_moves_available(self):
         for i in range(8):
             for j in range(8):
-                if self._board[i, j].color == self.action:
+                if self[i, j].color == self.action:
                     if self.get_legal_moves((i, j)):
                         return True
         return False
@@ -153,8 +154,7 @@ class ChessRules(object):
         return not self.legal_moves_available and not self.is_king_threatened(self.action)
 
     def is_move_checkmate(self, move):
-        delta_board = board.DeltaChessBoard(self._board)
-        delta_rules = ChessRules(delta_board)
+        delta_rules = self.delta_rules
         delta_rules._make_move(move)
         return delta_rules.in_checkmate
 
@@ -239,6 +239,6 @@ class ChessRules(object):
                                          by_color=color.opponent)
 
     def delivers_check(self, move):
-        delta_rules = self.delta_rules()
+        delta_rules = self.delta_rules
         delta_rules._make_move(move)
         return delta_rules.is_king_threatened(delta_rules.action)

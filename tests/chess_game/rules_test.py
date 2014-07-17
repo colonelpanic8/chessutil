@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from . import *
 
 
@@ -118,15 +119,16 @@ class DefaultBoardChessRulesTestCase(BasePlayableChessGameTestCase):
         self.chess_board[1, 4] = pieces.Queen(common.color.WHITE)
         self.chess_board[2, 5] = pieces.Pawn(common.color.BLACK)
         self.chess_board[5, 0] = pieces.Bishop(common.color.WHITE)
+        self.chess_board.print_board()
         #   +-----------------+
-        # 8 | R N B Q K B N R |
-        # 7 | P P P P P P P P |
-        # 6 | b . . . . . . . |
+        # 8 | ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜ |
+        # 7 | ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟ |
+        # 6 | ♗ . . . . . . . |
         # 5 | . . . . . . . . |
         # 4 | . . . . . . . . |
-        # 3 | . . . . . P . . |
-        # 2 | p p p p q . p p |
-        # 1 | r n b q k b n r |
+        # 3 | . . . . . ♟ . . |
+        # 2 | ♙ ♙ ♙ ♙ ♕ ♙ ♙ ♙ |
+        # 1 | ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖ |
         #   +-----------------+
         #     A B C D E F G H
 
